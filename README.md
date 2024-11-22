@@ -184,7 +184,6 @@ Please review [our security policy](../../security/policy) for more information.
 
 ## Credits
 
-- [Your Name](https://github.com/yourusername)
 - [All Contributors](../../contributors)
 
 ## License
