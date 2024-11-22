@@ -32,7 +32,6 @@ pest()->extend(TestCase::class, RefreshDatabase::class)->beforeEach(function ():
 |
 */
 
-
 /*
 |--------------------------------------------------------------------------
 | Functions

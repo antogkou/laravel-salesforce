@@ -18,7 +18,7 @@ it('can get token', closure: function (): void {
     ]);
     $response = app(ApexClient::class)->setEmail('test@test.com')->get('/test');
 
-    Http::assertSent(fn(Request $request): bool => $request->hasHeader('Authorization', 'Bearer test-token') &&
+    Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer test-token') &&
         $request->hasHeader('x-app-uuid', 'test-uuid') &&
         $request->hasHeader('x-api-key', 'test-key'));
 
