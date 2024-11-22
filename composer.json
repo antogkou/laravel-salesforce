@@ -1,17 +1,17 @@
 {
-    "name": "pfizer/laravel-salesforce",
+    "name": "antogkou/laravel-salesforce",
     "description": "A Laravel package for Salesforce API Integration",
     "type": "library",
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Pfizer\\LaravelSalesforce\\": "src/"
+            "Antogkou\\LaravelSalesforce\\": "src/"
         }
     },
     "authors": [
         {
             "name": "Antonis Gkoutzamanis",
-            "email": "antonis.gkoutzamanis@pfizer.com"
+            "email": "gkoutzamanis.a@gmail.com"
         }
     ],
     "require": {}

@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) Antonis Gkoutzamanis <antonis.gkoutzamanis@pfizer.com>
+Copyright (c) Antonis Gkoutzamanis <gkoutzamanis.a@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
