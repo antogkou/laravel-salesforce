@@ -1,7 +1,5 @@
 <?php
 
-// tests/Pest.php
-
 use Antogkou\LaravelSalesforce\Tests\TestCase;
 
 /*
@@ -10,7 +8,14 @@ use Antogkou\LaravelSalesforce\Tests\TestCase;
 |--------------------------------------------------------------------------
 */
 
-uses(TestCase::class)->in('Feature', 'Unit');
+uses(TestCase::class)
+    ->beforeEach(function () {
+        // Add any global setup here
+    })
+    ->afterEach(function () {
+        // Add any global teardown here
+    })
+    ->in(__DIR__);
 
 /*
 |--------------------------------------------------------------------------
