@@ -1,76 +1,81 @@
 {
-    "name": "antogkou/laravel-salesforce",
-     "authors": [
-        {
-            "name": "Antonis Gkoutzamanis",
-            "email": "gkoutzamanis.a@gmail.com"
-        }
+  "name": "antogkou/laravel-salesforce",
+  "authors": [
+    {
+      "name": "Antonis Gkoutzamanis",
+      "email": "gkoutzamanis.a@gmail.com"
+    }
+  ],
+  "description": "A Laravel package for Salesforce API integration",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Antogkou\\LaravelSalesforce\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Antogkou\\LaravelSalesforce\\Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^10.0|^11.0",
+    "illuminate/http": "^10.0|^11.0",
+    "guzzlehttp/guzzle": "^7.0"
+  },
+  "require-dev": {
+    "laravel/pint": "^1.13",
+    "orchestra/testbench": "^8.0|^9.0",
+    "pestphp/pest": "^v3.5.1",
+    "pestphp/pest-plugin-laravel": "^v3.0.0",
+    "phpstan/phpstan": "^1.0",
+    "friendsofphp/php-cs-fixer": "^v3.64.0",
+    "larastan/larastan": "v2.9.11",
+    "rector/rector": "^1.2.10"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Antogkou\\LaravelSalesforce\\SalesforceServiceProvider"
+      ],
+      "aliases": {
+        "Salesforce": "Antogkou\\LaravelSalesforce\\Facades\\Salesforce"
+      }
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "@php ./vendor/bin/testbench package:discover --ansi"
     ],
-    "description": "A Laravel package for Salesforce API integration",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "Antogkou\\LaravelSalesforce\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Antogkou\\LaravelSalesforce\\Tests\\": "tests/"
-        }
-    },
-    "require": {
-        "php": "^8.2",
-        "illuminate/support": "^10.0|^11.0",
-        "illuminate/http": "^10.0|^11.0",
-        "guzzlehttp/guzzle": "^7.0"
-    },
-    "require-dev": {
-        "laravel/pint": "^1.13",
-        "orchestra/testbench": "^8.0|^9.0",
-        "pestphp/pest": "^v3.5.1",
-        "pestphp/pest-plugin-laravel": "^v3.0.0",
-        "phpstan/phpstan": "^1.0",
-        "friendsofphp/php-cs-fixer": "^v3.64.0"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Antogkou\\LaravelSalesforce\\SalesforceServiceProvider"
-            ],
-            "aliases": {
-                "Salesforce": "Antogkou\\LaravelSalesforce\\Facades\\Salesforce"
-            }
-        }
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "@php ./vendor/bin/testbench package:discover --ansi"
-        ],
-        "test": [
-            "@php vendor/bin/pest"
-        ],
-        "test-coverage": [
-            "@php vendor/bin/pest --coverage"
-        ],
-        "format": [
-            "@php vendor/bin/pint"
-        ],
-        "analyse": [
-            "@php vendor/bin/phpstan analyse"
-        ],
-        "verify": [
-            "@php vendor/bin/pint --test",
-            "@php vendor/bin/phpstan analyse",
-            "@php vendor/bin/pest"
-        ]
-    },
-    "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    "test": [
+      "@php vendor/bin/pest"
+    ],
+    "test-coverage": [
+      "@php vendor/bin/pest --coverage"
+    ],
+    "format": [
+      "@php vendor/bin/pint"
+    ],
+    "analyse": [
+      "@php vendor/bin/phpstan analyse"
+    ],
+    "verify": [
+      "@php vendor/bin/pint --test",
+      "@php vendor/bin/phpstan analyse",
+      "@php vendor/bin/pest"
+    ],
+    "refactor": "rector",
+    "test:lint": "pint --test",
+    "test:refactor": "rector --dry-run"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }

@@ -20,12 +20,10 @@ final class SalesforceServiceProvider extends ServiceProvider
         );
 
         // Register singleton
-        $this->app->singleton('salesforce', function ($app) {
-            return new ApexClient(
-                userEmail: null,
-                request: $app['request']
-            );
-        });
+        $this->app->singleton('salesforce', fn(array $app): \Antogkou\LaravelSalesforce\ApexClient => new ApexClient(
+            userEmail: null,
+            request: $app['request']
+        ));
     }
 
     /**

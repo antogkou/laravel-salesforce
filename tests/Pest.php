@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 |
 */
 
-pest()->extend(TestCase::class, RefreshDatabase::class)->beforeEach(function () {
+pest()->extend(TestCase::class, RefreshDatabase::class)->beforeEach(function (): void {
     Storage::fake('public');
 });
 
@@ -32,9 +32,6 @@ pest()->extend(TestCase::class, RefreshDatabase::class)->beforeEach(function () 
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -47,7 +44,7 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function something(): void
 {
     // ..
 }

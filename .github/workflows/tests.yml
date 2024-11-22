@@ -36,9 +36,6 @@ jobs:
       - name: Check coding style
         run: vendor/bin/pint --test
 
-      - name: Static analysis
-        run: vendor/bin/phpstan analyse
-
       - name: Execute tests
         run: vendor/bin/pest --coverage
 

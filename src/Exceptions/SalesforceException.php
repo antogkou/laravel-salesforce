@@ -15,21 +15,15 @@ final class SalesforceException extends Exception implements Responsable
     private const DEFAULT_STATUS_CODE = Response::HTTP_INTERNAL_SERVER_ERROR;
 
     /**
-     * @var array<string, mixed>
-     */
-    private array $context;
-
-    /**
      * @param  array<string, mixed>  $context  Additional context information about the exception
      */
     public function __construct(
         string $message,
         int $code = self::DEFAULT_STATUS_CODE,
         ?Throwable $previous = null,
-        array $context = []
+        private readonly array $context = []
     ) {
         parent::__construct($message, $code, $previous);
-        $this->context = $context;
     }
 
     public function toResponse($request): JsonResponse
@@ -41,7 +35,7 @@ final class SalesforceException extends Exception implements Responsable
         return new JsonResponse([
             'message' => $this->getMessage(),
             'code' => $this->getCode(),
-            'context' => $this->getContext(),
+            'context' => $this->context,
         ], $statusCode);
     }
 

@@ -7,7 +7,7 @@ use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
-it('can get token', closure: function () {
+it('can get token', closure: function (): void {
     Http::fake([
         'https://test.salesforce.com/services/oauth2/token' => Http::response([
             'access_token' => 'test-token',
@@ -18,16 +18,14 @@ it('can get token', closure: function () {
     ]);
     $response = app(ApexClient::class)->setEmail('test@test.com')->get('/test');
 
-    Http::assertSent(function (Request $request) {
-        return $request->hasHeader('Authorization', 'Bearer test-token') &&
-            $request->hasHeader('x-app-uuid', 'test-uuid') &&
-            $request->hasHeader('x-api-key', 'test-key');
-    });
+    Http::assertSent(fn(Request $request): bool => $request->hasHeader('Authorization', 'Bearer test-token') &&
+        $request->hasHeader('x-app-uuid', 'test-uuid') &&
+        $request->hasHeader('x-api-key', 'test-key'));
 
     expect($response->json())->toBe(['data' => 'success']);
 });
 
-it('throws exception on error', function () {
+it('throws exception on error', function (): void {
     Http::fake([
         'https://test.salesforce.com/services/oauth2/token' => Http::response([
             'access_token' => 'test-token',

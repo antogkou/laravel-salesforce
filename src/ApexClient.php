@@ -23,15 +23,12 @@ final class ApexClient
 {
     private const TOKEN_CACHE_KEY = 'salesforceToken';
 
-    private const TOKEN_CACHE_TTL = 28800; // 8 hours
+    private const TOKEN_CACHE_TTL = 28800;
 
-    private ?string $userEmail;
+    private readonly ?Request $request;
 
-    private ?Request $request;
-
-    public function __construct(?string $userEmail = null, ?Request $request = null)
+    public function __construct(private ?string $userEmail = null, ?Request $request = null)
     {
-        $this->userEmail = $userEmail;
         $this->request = $request ?? request();
     }
 
@@ -55,52 +52,6 @@ final class ApexClient
     }
 
     /**
-     * @param  array<string, mixed>  $data
-     * @param  array<string, string>  $additionalHeaders
-     *
-     * @throws SalesforceException|RequestException
-     */
-    public function post(string $url, array $data, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'post', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     * @param  array<string, string>  $additionalHeaders
-     *
-     * @throws RequestException
-     * @throws SalesforceException
-     */
-    public function put(string $url, array $data, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'put', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     * @param  array<string, string>  $additionalHeaders
-     *
-     * @throws RequestException
-     * @throws SalesforceException
-     */
-    public function patch(string $url, array $data, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'patch', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-    }
-
-    /**
-     * @param  array<string, string>  $additionalHeaders
-     *
-     * @throws RequestException
-     * @throws SalesforceException
-     */
-    public function delete(string $url, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'delete', url: $url, data: [], additionalHeaders: $additionalHeaders);
-    }
-
-    /**
      * @param  array<string, mixed>  $query
      * @param  array<string, mixed>  $data
      * @param  array<string, string>  $additionalHeaders
@@ -120,11 +71,7 @@ final class ApexClient
         try {
             $fullUrl = $this->buildUrl($url, $query);
 
-            if ($method === 'get') {
-                $response = $request->$method($fullUrl);
-            } else {
-                $response = $request->$method($fullUrl, $data);
-            }
+            $response = $method === 'get' ? $request->$method($fullUrl) : $request->$method($fullUrl, $data);
 
             if ($response->unauthorized()) {
                 cache()->forget(self::TOKEN_CACHE_KEY);
@@ -164,7 +111,7 @@ final class ApexClient
 
             return $response;
         } catch (Exception $e) {
-            if (! $e instanceof SalesforceException) {
+            if (!$e instanceof SalesforceException) {
                 $routeInfo = $this->getRouteInfo();
                 Log::error('Salesforce API Request Failed', [
                     'method' => $method,
@@ -202,11 +149,11 @@ final class ApexClient
     private function baseUrl(): string
     {
         $apexUri = config('salesforce.apex_uri');
-        if (! is_string($apexUri)) {
+        if (!is_string($apexUri)) {
             throw new SalesforceException('Invalid apex_uri configuration');
         }
 
-        if (! Str::contains($apexUri, '.com:8443') && Arr::exists($this->options(), 'curl')) {
+        if (!Str::contains($apexUri, '.com:8443') && Arr::exists($this->options(), 'curl')) {
             $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
         }
 
@@ -234,9 +181,8 @@ final class ApexClient
     private function token(): string
     {
         try {
-            return cache()->remember(self::TOKEN_CACHE_KEY, self::TOKEN_CACHE_TTL, function () {
-                return $this->refreshToken();
-            });
+            return cache()->remember(self::TOKEN_CACHE_KEY, self::TOKEN_CACHE_TTL,
+                fn(): string => $this->refreshToken());
         } catch (Exception $e) {
             Log::error('Failed to obtain Salesforce token', ['error' => $e->getMessage()]);
 
@@ -250,7 +196,7 @@ final class ApexClient
     private function refreshToken(): string
     {
         $tokenUri = config('salesforce.token_uri');
-        if (! is_string($tokenUri)) {
+        if (!is_string($tokenUri)) {
             throw new SalesforceException('Invalid token_uri configuration');
         }
 
@@ -264,15 +210,15 @@ final class ApexClient
 
         if ($response->successful()) {
             $token = $response->json('access_token');
-            if (is_string($token) && ! empty($token)) {
+            if (is_string($token) && ($token !== '' && $token !== '0')) {
                 return $token;
             }
         }
 
         // If we reach here, either the response was not successful or the token was invalid
         $errorMessage = $response->successful()
-          ? 'Invalid token received from Salesforce'
-          : 'Failed to refresh token: '.$response->body();
+            ? 'Invalid token received from Salesforce'
+            : 'Failed to refresh token: '.$response->body();
 
         throw new SalesforceException(
             $errorMessage,
@@ -283,14 +229,25 @@ final class ApexClient
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws SalesforceException|RequestException
+     */
+    public function post(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'post', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
+
+    /**
      * @param  array<string, mixed>  $query
      */
     private function buildUrl(string $url, array $query = []): string
     {
         $baseUrl = $this->baseUrl();
         $fullUrl = Str::startsWith($url, ['http://', 'https://'])
-          ? $url
-          : $baseUrl.'/'.ltrim($url, '/');
+            ? $url
+            : $baseUrl.'/'.ltrim($url, '/');
 
         $request = Request::create($fullUrl);
 
@@ -301,8 +258,8 @@ final class ApexClient
         );
 
         return $request->getSchemeAndHttpHost()
-          .$request->getPathInfo()
-          .(! empty($mergedQuery) ? '?'.http_build_query($mergedQuery) : '');
+            .$request->getPathInfo()
+            .($mergedQuery === [] ? '' : '?'.http_build_query($mergedQuery));
     }
 
     /**
@@ -310,7 +267,7 @@ final class ApexClient
      */
     private function getRouteInfo(): array
     {
-        if (! $this->request) {
+        if (!$this->request instanceof Request) {
             return [
                 'uri' => '',
                 'name' => null,
@@ -321,7 +278,7 @@ final class ApexClient
         $route = $this->request->route();
 
         // Early return if route is null
-        if (! $route instanceof Route) {
+        if (!$route instanceof Route) {
             return [
                 'uri' => $this->request->path(),
                 'name' => null,
@@ -335,8 +292,43 @@ final class ApexClient
 
         return [
             'uri' => $this->request->path(),
-            'name' => $name ? (string) $name : null,
-            'action' => $action ? (string) $action : null,
+            'name' => $name ?: null,
+            'action' => $action ?: null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function put(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'put', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function patch(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'patch', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
+
+    /**
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function delete(string $url, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'delete', url: $url, data: [], additionalHeaders: $additionalHeaders);
     }
 }
