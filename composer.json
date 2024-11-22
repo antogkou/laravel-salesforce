@@ -1,6 +1,12 @@
 {
     "name": "antogkou/laravel-salesforce",
-    "description": "A Laravel package for Salesforce API Integration",
+     "authors": [
+        {
+            "name": "Antonis Gkoutzamanis",
+            "email": "gkoutzamanis.a@gmail.com"
+        }
+    ],
+    "description": "A Laravel package for Salesforce API integration",
     "type": "library",
     "license": "MIT",
     "autoload": {
@@ -8,11 +14,37 @@
             "Antogkou\\LaravelSalesforce\\": "src/"
         }
     },
-    "authors": [
-        {
-            "name": "Antonis Gkoutzamanis",
-            "email": "gkoutzamanis.a@gmail.com"
+    "autoload-dev": {
+        "psr-4": {
+            "Antogkou\\LaravelSalesforce\\Tests\\": "tests/"
         }
-    ],
-    "require": {}
+    },
+    "require": {
+        "php": "^8.0",
+        "laravel/framework": "^10.0|^11.0",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0",
+        "phpunit/phpunit": "^10.0",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^1.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Antogkou\\LaravelSalesforce\\SalesforceServiceProvider"
+            ],
+            "aliases": {
+                "Salesforce": "Antogkou\\LaravelSalesforce\\Facades\\Salesforce"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "format": "vendor/bin/php-cs-fixer fix --allow-risky=yes",
+        "analyse": "vendor/bin/phpstan analyse"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
