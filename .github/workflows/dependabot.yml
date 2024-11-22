@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # Maintain dependencies for Composer
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    versioning-strategy: "auto"
+    labels:
+      - "dependencies"
+      - "php"
+      - "composer"
+    commit-message:
+      prefix: "composer"
+      include: "scope"
+    reviewers:
+      - "antogkou"
+    assignees:
+      - "antogkou"
+    groups:
+      dev-dependencies:
+        patterns:
+          - "phpunit/*"
+          - "pestphp/*"
+          - "mockery/*"
+          - "phpstan/*"
+      laravel-dependencies:
+        patterns:
+          - "laravel/*"
+          - "illuminate/*"
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "github-actions"
+      include: "scope"
+    reviewers:
+      - "antogkou"
+    assignees:
+      - "antogkou"
