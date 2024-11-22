@@ -19,6 +19,7 @@ class TestConfigCommand extends Command
 
         if ($config === null) {
             $this->error('Config not found!');
+
             return 1;
         }
 

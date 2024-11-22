@@ -1,9 +1,10 @@
 <?php
 
-# src/ApexClient.php
+// src/ApexClient.php
+
 namespace Antogkou\LaravelSalesforce;
 
-use App\Exceptions\SalesforceException;
+use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -16,262 +17,264 @@ use Illuminate\Support\Str;
 
 class ApexClient
 {
-  private const TOKEN_CACHE_KEY = 'salesforceToken';
+    private const TOKEN_CACHE_KEY = 'salesforceToken';
 
-  private const TOKEN_CACHE_TTL = 28800; // 8 hours
+    private const TOKEN_CACHE_TTL = 28800; // 8 hours
 
-  private ?string $userEmail;
+    private ?string $userEmail;
 
-  private ?Request $request;
+    private ?Request $request;
 
-  public function __construct(?string $userEmail = null, ?Request $request = null)
-  {
-    $this->userEmail = $userEmail;
-    $this->request = $request ?? request();
-  }
+    public function __construct(?string $userEmail = null, ?Request $request = null)
+    {
+        $this->userEmail = $userEmail;
+        $this->request = $request ?? request();
+    }
 
-  public function setEmail(string $email): self
-  {
-    $this->userEmail = $email;
+    public function setEmail(string $email): self
+    {
+        $this->userEmail = $email;
 
-    return $this;
-  }
+        return $this;
+    }
 
-  /**
-   * @throws RequestException
-   * @throws SalesforceException
-   */
-  public function get(string $url, array $query = [], array $additionalHeaders = []): Response
-  {
-    return $this->sendRequest(method: 'get', url: $url, query: $query, additionalHeaders: $additionalHeaders);
-  }
+    /**
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function get(string $url, array $query = [], array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'get', url: $url, query: $query, additionalHeaders: $additionalHeaders);
+    }
 
-  /**
-   * @throws RequestException
-   * @throws SalesforceException
-   */
-  private function sendRequest(
-    string $method,
-    string $url,
-    array $query = [],
-    array $data = [],
-    array $additionalHeaders = [],
-  ): Response {
-    $request = $this->request($additionalHeaders);
+    /**
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    private function sendRequest(
+        string $method,
+        string $url,
+        array $query = [],
+        array $data = [],
+        array $additionalHeaders = [],
+    ): Response {
+        $request = $this->request($additionalHeaders);
 
-    try {
-      $fullUrl = $this->buildUrl($url, $query);
+        try {
+            $fullUrl = $this->buildUrl($url, $query);
 
-      if ($method === 'get') {
-        $response = $request->$method($fullUrl);
-      } else {
-        $response = $request->$method($fullUrl, $data);
-      }
+            if ($method === 'get') {
+                $response = $request->$method($fullUrl);
+            } else {
+                $response = $request->$method($fullUrl, $data);
+            }
 
-      if ($response->unauthorized()) {
-        cache()->forget(self::TOKEN_CACHE_KEY);
-        $request = $this->request($additionalHeaders); // Get a new request with the new token
+            if ($response->unauthorized()) {
+                cache()->forget(self::TOKEN_CACHE_KEY);
+                $request = $this->request($additionalHeaders); // Get a new request with the new token
 
-        $response = $request->$method($fullUrl, $data);
-      }
+                $response = $request->$method($fullUrl, $data);
+            }
 
-      if ($response->failed()) {
-        $errorBody = $response->json() ?? $response->body();
-        $routeInfo = $this->getRouteInfo();
+            if ($response->failed()) {
+                $errorBody = $response->json() ?? $response->body();
+                $routeInfo = $this->getRouteInfo();
 
-        Log::error('Salesforce API Error', [
-          'method' => $method,
-          'url' => $fullUrl,
-          'data' => $data,
-          'status' => $response->status(),
-          'response' => $errorBody,
-          'laravel_route' => $routeInfo,
+                Log::error('Salesforce API Error', [
+                    'method' => $method,
+                    'url' => $fullUrl,
+                    'data' => $data,
+                    'status' => $response->status(),
+                    'response' => $errorBody,
+                    'laravel_route' => $routeInfo,
+                ]);
+
+                throw new SalesforceException(
+                    ($errorBody['message'] ?? 'Unknown Salesforce API error'),
+                    $response->status(),
+                    null,
+                    [
+                        'message' => $errorBody['message'] ?? 'Unknown Salesforce API error',
+                        'method' => $method,
+                        'url' => $fullUrl,
+                        'data' => $data,
+                        'status' => $response->status(),
+                        'response' => $errorBody,
+                        'laravel_route' => $routeInfo,
+                    ]
+                );
+            }
+
+            return $response;
+        } catch (Exception $e) {
+            if (! $e instanceof SalesforceException) {
+                $routeInfo = $this->getRouteInfo();
+                Log::error('Salesforce API Request Failed', [
+                    'method' => $method,
+                    'url' => $url,
+                    'data' => $data,
+                    'error' => $e->getMessage(),
+                    'laravel_route' => $routeInfo,
+                ]);
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @throws SalesforceException
+     */
+    private function request(array $additionalHeaders = []): PendingRequest
+    {
+        $headers = [
+            'x-app-uuid' => config('salesforce.app_uuid'),
+            'x-api-key' => config('salesforce.app_key'),
+            'x-user-email' => $this->userEmail ?? auth()->user()->email,
+        ];
+        $mergedHeaders = array_merge($headers, $additionalHeaders);
+
+        return Http::baseUrl($this->baseUrl())
+            ->withToken($this->token())
+            ->withHeaders($mergedHeaders)
+            ->withOptions($this->options());
+    }
+
+    private function baseUrl(): string
+    {
+        $apexUri = config('salesforce.apex_uri');
+
+        if (! Str::contains($apexUri, '.com:8443') && Arr::exists($this->options(), 'curl')) {
+            $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
+        }
+
+        return rtrim($apexUri, '/');
+    }
+
+    private function options(): array
+    {
+        if (config('salesforce.certificate') && config('salesforce.certificate_key')) {
+            return [
+                'curl' => [
+                    CURLOPT_SSLCERT => storage_path('certificates') . DIRECTORY_SEPARATOR . config('salesforce.certificate'),
+                    CURLOPT_SSLKEY => storage_path('certificates') . DIRECTORY_SEPARATOR . config('salesforce.certificate_key'),
+                    CURLOPT_VERBOSE => config('app.debug'),
+                ],
+            ];
+        }
+
+        return [];
+    }
+
+    private function token(): string
+    {
+        try {
+            return cache()->remember(self::TOKEN_CACHE_KEY, self::TOKEN_CACHE_TTL, function () {
+                return $this->refreshToken();
+            });
+        } catch (Exception $e) {
+            Log::error('Failed to obtain Salesforce token', ['error' => $e->getMessage()]);
+
+            throw new SalesforceException($e->getMessage(), 500, $e);
+        }
+    }
+
+    /**
+     * @throws SalesforceException
+     */
+    private function refreshToken(): string
+    {
+        $response = Http::asForm()->post(config('salesforce.token_uri'), [
+            'grant_type' => 'password',
+            'client_id' => config('salesforce.client_id'),
+            'client_secret' => config('salesforce.client_secret'),
+            'username' => config('salesforce.username'),
+            'password' => config('salesforce.password') . config('salesforce.security_token'),
         ]);
+
+        if ($response->successful()) {
+            $token = $response->json('access_token');
+            if (is_string($token) && ! empty($token)) {
+                return $token;
+            }
+        }
+
+        // If we reach here, either the response was not successful or the token was invalid
+        $errorMessage = $response->successful()
+          ? 'Invalid token received from Salesforce'
+          : 'Failed to refresh token: ' . $response->body();
 
         throw new SalesforceException(
-          ($errorBody['message'] ?? 'Unknown Salesforce API error'),
-          $response->status(),
-          null,
-          [
-            'message' => $errorBody['message'] ?? 'Unknown Salesforce API error',
-            'method' => $method,
-            'url' => $fullUrl,
-            'data' => $data,
-            'status' => $response->status(),
-            'response' => $errorBody,
-            'laravel_route' => $routeInfo,
-          ]
+            $errorMessage,
+            $response->status() ?: 500,
+            null,
+            ['response' => $response->json()]
         );
-      }
-
-      return $response;
-    } catch (Exception $e) {
-      if (! $e instanceof SalesforceException) {
-        $routeInfo = $this->getRouteInfo();
-        Log::error('Salesforce API Request Failed', [
-          'method' => $method,
-          'url' => $url,
-          'data' => $data,
-          'error' => $e->getMessage(),
-          'laravel_route' => $routeInfo,
-        ]);
-      }
-      throw $e;
-    }
-  }
-
-  /**
-   * @throws SalesforceException
-   */
-  private function request(array $additionalHeaders = []): PendingRequest
-  {
-    $headers = [
-      'x-app-uuid' => config('salesforce.app_uuid'),
-      'x-api-key' => config('salesforce.app_key'),
-      'x-user-email' => $this->userEmail ?? auth()->user()->email,
-    ];
-    $mergedHeaders = array_merge($headers, $additionalHeaders);
-
-    return Http::baseUrl($this->baseUrl())
-      ->withToken($this->token())
-      ->withHeaders($mergedHeaders)
-      ->withOptions($this->options());
-  }
-
-  private function baseUrl(): string
-  {
-    $apexUri = config('salesforce.apex_uri');
-
-    if (! Str::contains($apexUri, '.com:8443') && Arr::exists($this->options(), 'curl')) {
-      $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
     }
 
-    return rtrim($apexUri, '/');
-  }
-
-  private function options(): array
-  {
-    if (config('salesforce.certificate') && config('salesforce.certificate_key')) {
-      return [
-        'curl' => [
-          CURLOPT_SSLCERT => storage_path('certificates') . DIRECTORY_SEPARATOR . config('salesforce.certificate'),
-          CURLOPT_SSLKEY => storage_path('certificates') . DIRECTORY_SEPARATOR . config('salesforce.certificate_key'),
-          CURLOPT_VERBOSE => config('app.debug'),
-        ],
-      ];
+    /**
+     * @throws SalesforceException|RequestException
+     */
+    public function post(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'post', url: $url, data: $data, additionalHeaders: $additionalHeaders);
     }
 
-    return [];
-  }
+    private function buildUrl(string $url, array $query = []): string
+    {
+        $baseUrl = $this->baseUrl();
+        $fullUrl = Str::startsWith($url, ['http://', 'https://'])
+          ? $url
+          : $baseUrl . '/' . ltrim($url, '/');
 
-  private function token(): string
-  {
-    try {
-      return cache()->remember(self::TOKEN_CACHE_KEY, self::TOKEN_CACHE_TTL, function () {
-        return $this->refreshToken();
-      });
-    } catch (Exception $e) {
-      Log::error('Failed to obtain Salesforce token', ['error' => $e->getMessage()]);
-      throw new SalesforceException($e->getMessage(), 500, $e);
-    }
-  }
+        $request = Request::create($fullUrl);
 
-  /**
-   * @throws SalesforceException
-   */
-  private function refreshToken(): string
-  {
-    $response = Http::asForm()->post(config('salesforce.token_uri'), [
-      'grant_type' => 'password',
-      'client_id' => config('salesforce.client_id'),
-      'client_secret' => config('salesforce.client_secret'),
-      'username' => config('salesforce.username'),
-      'password' => config('salesforce.password') . config('salesforce.security_token'),
-    ]);
+        // Merge existing query parameters with new ones
+        $mergedQuery = array_merge(
+            $request->query->all(),
+            $query
+        );
 
-    if ($response->successful()) {
-      $token = $response->json('access_token');
-      if (is_string($token) && ! empty($token)) {
-        return $token;
-      }
+        return $request->getSchemeAndHttpHost()
+          . $request->getPathInfo()
+          . (! empty($mergedQuery) ? '?' . http_build_query($mergedQuery) : '');
     }
 
-    // If we reach here, either the response was not successful or the token was invalid
-    $errorMessage = $response->successful()
-      ? 'Invalid token received from Salesforce'
-      : 'Failed to refresh token: ' . $response->body();
+    private function getRouteInfo(): array
+    {
+        $route = $this->request->route();
 
-    throw new SalesforceException(
-      $errorMessage,
-      $response->status() ?: 500,
-      null,
-      ['response' => $response->json()]
-    );
-  }
+        return [
+            'uri' => $this->request->path(),
+            'name' => $route ? $route->getName() : null,
+            'action' => $route ? $route->getActionName() : null,
+        ];
+    }
 
-  /**
-   * @throws SalesforceException|RequestException
-   */
-  public function post(string $url, array $data, array $additionalHeaders = []): Response
-  {
-    return $this->sendRequest(method: 'post', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-  }
+    /**
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function put(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'put', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
 
-  private function buildUrl(string $url, array $query = []): string
-  {
-    $baseUrl = $this->baseUrl();
-    $fullUrl = Str::startsWith($url, ['http://', 'https://'])
-      ? $url
-      : $baseUrl . '/' . ltrim($url, '/');
+    /**
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function patch(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'patch', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
 
-    $request = Request::create($fullUrl);
-
-    // Merge existing query parameters with new ones
-    $mergedQuery = array_merge(
-      $request->query->all(),
-      $query
-    );
-
-    return $request->getSchemeAndHttpHost()
-      . $request->getPathInfo()
-      . (! empty($mergedQuery) ? '?' . http_build_query($mergedQuery) : '');
-  }
-
-  private function getRouteInfo(): array
-  {
-    $route = $this->request->route();
-
-    return [
-      'uri' => $this->request->path(),
-      'name' => $route ? $route->getName() : null,
-      'action' => $route ? $route->getActionName() : null,
-    ];
-  }
-
-  /**
-   * @throws RequestException
-   * @throws SalesforceException
-   */
-  public function put(string $url, array $data, array $additionalHeaders = []): Response
-  {
-    return $this->sendRequest(method: 'put', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-  }
-
-  /**
-   * @throws RequestException
-   * @throws SalesforceException
-   */
-  public function patch(string $url, array $data, array $additionalHeaders = []): Response
-  {
-    return $this->sendRequest(method: 'patch', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-  }
-
-  /**
-   * @throws RequestException
-   * @throws SalesforceException
-   */
-  public function delete(string $url, array $additionalHeaders = []): Response
-  {
-    return $this->sendRequest(method: 'delete', url: $url, data: [], additionalHeaders: $additionalHeaders);
-  }
+    /**
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function delete(string $url, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'delete', url: $url, data: [], additionalHeaders: $additionalHeaders);
+    }
 }

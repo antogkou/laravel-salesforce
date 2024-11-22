@@ -16,7 +16,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Antogkou\\LaravelSalesforce\\Tests\\": "tests/"
+            "YourVendor\\LaravelSalesforce\\Tests\\": "tests/"
         }
     },
     "require": {
@@ -26,7 +26,10 @@
         "guzzlehttp/guzzle": "^7.0"
     },
     "require-dev": {
+        "laravel/pint": "^1.13",
         "orchestra/testbench": "^7.0|^8.0|^9.0",
+        "pestphp/pest": "^1.22|^2.0",
+        "pestphp/pest-plugin-laravel": "^1.1|^2.0",
         "phpunit/phpunit": "^9.0|^10.0",
         "friendsofphp/php-cs-fixer": "^3.0",
         "phpstan/phpstan": "^1.0"
@@ -42,8 +45,18 @@
         }
     },
     "scripts": {
-        "test": "vendor/bin/phpunit",
-        "format": "vendor/bin/php-cs-fixer fix --allow-risky=yes",
+        "post-autoload-dump": [
+            "@php ./vendor/bin/testbench package:discover --ansi"
+        ],
+        "test": [
+            "@php vendor/bin/pest"
+        ],
+        "test-coverage": [
+            "@php vendor/bin/pest --coverage"
+        ],
+        "format": [
+            "@php vendor/bin/pint"
+        ],
         "analyse": "vendor/bin/phpstan analyse"
     },
     "config": {

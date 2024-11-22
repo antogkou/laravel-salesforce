@@ -1,9 +1,10 @@
 <?php
 
-# src/Facades/Salesforce.php
+// src/Facades/Salesforce.php
+
 namespace Antogkou\LaravelSalesforce\Facades;
 
-use App\Exceptions\SalesforceException;
+use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Facade;
@@ -19,12 +20,12 @@ use Illuminate\Support\Facades\Facade;
  * @throws SalesforceException
  * @throws RequestException
  *
- * @see \App\Http\Integrations\ApexClient
+ * @see \Antogkou\LaravelSalesforce\ApexClient
  */
 class Salesforce extends Facade
 {
-  protected static function getFacadeAccessor(): string
-  {
-    return 'salesforce';
-  }
+    protected static function getFacadeAccessor(): string
+    {
+        return 'salesforce';
+    }
 }
