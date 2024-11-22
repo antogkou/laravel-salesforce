@@ -12,7 +12,7 @@ class SalesforceServiceProvider extends ServiceProvider
 {
   public function register(): void
   {
-    $this->mergeConfigFrom(__DIR__ . '/../../config/salesforce.php', 'salesforce');
+    $this->mergeConfigFrom(__DIR__ . '../config/salesforce.php', 'salesforce');
 
     $this->app->singleton('salesforce', function ($app) {
       return new ApexClient(
@@ -25,7 +25,7 @@ class SalesforceServiceProvider extends ServiceProvider
   public function boot(): void
   {
     $this->publishes([
-      __DIR__ . '/../../config/salesforce.php' => config_path('salesforce.php'),
+      __DIR__ . '../config/salesforce.php' => config_path('salesforce.php'),
     ], 'salesforce-config');
   }
 }
