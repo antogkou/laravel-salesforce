@@ -9,7 +9,6 @@ use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -26,7 +25,8 @@ final class ApexClient
 
     public function __construct(
         private ?string $userEmail = null
-    ) {}
+    ) {
+    }
 
     /**
      * Magic method to handle HTTP requests dynamically
@@ -35,7 +35,7 @@ final class ApexClient
      */
     public function __call(string $method, array $arguments): Response
     {
-        if (! in_array($method, self::ALLOWED_METHODS, true)) {
+        if (!in_array($method, self::ALLOWED_METHODS, true)) {
             throw new SalesforceException("Method {$method} not supported");
         }
 
@@ -51,13 +51,6 @@ final class ApexClient
             data: $method !== 'get' ? $data : [],
             additionalHeaders: $headers
         );
-    }
-
-    public function setEmail(string $email): self
-    {
-        $this->userEmail = $email;
-
-        return $this;
     }
 
     /**
@@ -112,11 +105,11 @@ final class ApexClient
     private function getBaseUrl(): string
     {
         $apexUri = config('salesforce.apex_uri');
-        if (! is_string($apexUri)) {
+        if (!is_string($apexUri)) {
             throw new SalesforceException('Invalid apex_uri configuration');
         }
 
-        if (! Str::contains($apexUri, '.com:8443') && Arr::exists($this->getRequestOptions(), 'curl')) {
+        if (!Str::contains($apexUri, '.com:8443') && Arr::exists($this->getRequestOptions(), 'curl')) {
             $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
         }
 
@@ -125,7 +118,7 @@ final class ApexClient
 
     private function getRequestOptions(): array
     {
-        if (! config('salesforce.certificate') || ! config('salesforce.certificate_key')) {
+        if (!config('salesforce.certificate') || !config('salesforce.certificate_key')) {
             return [];
         }
 
@@ -147,7 +140,7 @@ final class ApexClient
             return cache()->remember(
                 self::TOKEN_CACHE_KEY,
                 self::TOKEN_CACHE_TTL,
-                fn (): string => $this->refreshToken()
+                fn(): string => $this->refreshToken()
             );
         } catch (Exception $e) {
             Log::error('Failed to obtain Salesforce token', ['error' => $e->getMessage()]);
@@ -161,7 +154,7 @@ final class ApexClient
     private function refreshToken(): string
     {
         $tokenUri = config('salesforce.token_uri');
-        if (! is_string($tokenUri)) {
+        if (!is_string($tokenUri)) {
             throw new SalesforceException('Invalid token_uri configuration');
         }
 
@@ -206,7 +199,7 @@ final class ApexClient
             ? $url
             : $this->getBaseUrl().'/'.ltrim($url, '/');
 
-        $request = Request::create($fullUrl);
+        $request = request()->create($fullUrl);
 
         // Merge existing query parameters with new ones
         $mergedQuery = array_merge(
@@ -237,9 +230,9 @@ final class ApexClient
         if ($response->failed()) {
             $errorBody = $response->json() ?? $response->body();
             $routeInfo = [
-                'uri' => Request::path(),
-                'name' => Request::route()?->getName(),
-                'action' => Request::route()?->getActionName(),
+                'uri' => request()->path(),
+                'name' => request()->route()?->getName(),
+                'action' => request()->route()?->getActionName(),
             ];
 
             Log::error('Salesforce API Error', [
@@ -265,18 +258,25 @@ final class ApexClient
 
     private function logError(Exception $e, string $method, string $url, array $data): void
     {
-        if (! $e instanceof SalesforceException) {
+        if (!$e instanceof SalesforceException) {
             Log::error('Salesforce API Request Failed', [
                 'method' => $method,
                 'url' => $url,
                 'data' => $data,
                 'error' => $e->getMessage(),
                 'route' => [
-                    'uri' => Request::path(),
-                    'name' => Request::route()?->getName(),
-                    'action' => Request::route()?->getActionName(),
+                    'uri' => request()->path(),
+                    'name' => request()->route()?->getName(),
+                    'action' => request()->route()?->getActionName(),
                 ],
             ]);
         }
+    }
+
+    public function setEmail(string $email): self
+    {
+        $this->userEmail = $email;
+
+        return $this;
     }
 }
