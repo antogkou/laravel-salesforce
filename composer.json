@@ -16,21 +16,20 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "YourVendor\\LaravelSalesforce\\Tests\\": "tests/"
+            "Antogkou\\LaravelSalesforce\\Tests\\": "tests/"
         }
     },
     "require": {
-        "php": "^8.0",
-        "illuminate/support": "^9.0|^10.0|^11.0",
-        "illuminate/http": "^9.0|^10.0|^11.0",
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
         "guzzlehttp/guzzle": "^7.0"
     },
     "require-dev": {
         "laravel/pint": "^1.13",
-        "orchestra/testbench": "^7.0|^8.0|^9.0",
-        "pestphp/pest": "^1.22|^2.0",
-        "pestphp/pest-plugin-laravel": "^1.1|^2.0",
-        "phpunit/phpunit": "^9.0|^10.0",
+        "orchestra/testbench": "^8.0|^9.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^v3.0.0",
         "friendsofphp/php-cs-fixer": "^3.0",
         "phpstan/phpstan": "^1.0"
     },
@@ -57,7 +56,14 @@
         "format": [
             "@php vendor/bin/pint"
         ],
-        "analyse": "vendor/bin/phpstan analyse"
+        "analyse": [
+            "@php vendor/bin/phpstan analyse"
+        ],
+        "verify": [
+            "@php vendor/bin/pint --test",
+            "@php vendor/bin/phpstan analyse",
+            "@php vendor/bin/pest"
+        ]
     },
     "config": {
         "sort-packages": true,

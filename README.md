@@ -7,6 +7,19 @@
 
 A Laravel package for seamless Salesforce API integration.
 
+## Requirements
+
+- PHP 8.1 or higher
+- Laravel 10.0 or higher
+- Composer 2.0 or higher
+
+## Version Compatibility
+
+| Laravel | PHP          | Package |
+|---------|--------------|---------|
+| 10.x    | 8.1, 8.2, 8.3| 1.x     |
+| 11.x    | 8.2, 8.3    | 1.x     |
+
 ## Installation
 
 You can install the package via composer:
@@ -39,7 +52,7 @@ SF_APP_KEY=your-app-key
 ## Usage
 
 ```php
-use YourVendor\LaravelSalesforce\Facades\Salesforce;
+use Antogkou\LaravelSalesforce\Facades\Salesforce;
 
 // Get data
 $response = Salesforce::get('/endpoint');
