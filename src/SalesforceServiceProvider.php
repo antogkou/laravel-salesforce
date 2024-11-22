@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Providers;
+# src/SalesforceServiceProvider.php
+namespace Antogkou\LaravelSalesforce;
 
 use App\Http\Integrations\ApexClient;
 use Illuminate\Support\ServiceProvider;

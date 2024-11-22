@@ -1,6 +1,7 @@
 <?php
 
-namespace App\Http\Integrations;
+# src/ApexClient.php
+namespace Antogkou\LaravelSalesforce;
 
 use App\Exceptions\SalesforceException;
 use Exception;

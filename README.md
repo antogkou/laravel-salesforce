@@ -1,9 +1,9 @@
 # Laravel Salesforce Integration
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/your-vendor/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/your-vendor/laravel-salesforce)
-[![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/your-vendor/laravel-salesforce/Tests?label=tests)](https://github.com/your-vendor/laravel-salesforce/actions?query=workflow%3ATests+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/your-vendor/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/your-vendor/laravel-salesforce)
-[![License](https://img.shields.io/packagist/l/your-vendor/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/your-vendor/laravel-salesforce)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/antogkou/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/antogkou/laravel-salesforce)
+[![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/antogkou/laravel-salesforce/Tests?label=tests)](https://github.com/antogkou/laravel-salesforce/actions?query=workflow%3ATests+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/antogkou/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/antogkou/laravel-salesforce)
+[![License](https://img.shields.io/packagist/l/antogkou/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/antogkou/laravel-salesforce)
 
 A Laravel package for seamless Salesforce API integration.
 
@@ -12,7 +12,7 @@ A Laravel package for seamless Salesforce API integration.
 You can install the package via composer:
 
 ```bash
-composer require your-vendor/laravel-salesforce
+composer require antogkou/laravel-salesforce
 ```
 
 You can publish the config file with:

@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Exceptions;
+# src/Exceptions/SalesforceException.php
+namespace Antogkou\LaravelSalesforce\Exceptions;
+
 
 use Exception;
 use Illuminate\Contracts\Support\Responsable;

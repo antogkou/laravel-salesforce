@@ -1,6 +1,7 @@
 <?php
 
-namespace App\Facades;
+# src/Facades/Salesforce.php
+namespace Antogkou\LaravelSalesforce\Facades;
 
 use App\Exceptions\SalesforceException;
 use Illuminate\Http\Client\RequestException;
