@@ -1,3 +1,4 @@
+# .github/workflows/tests.yml
 name: Tests
 
 on:
@@ -10,16 +11,22 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        php: [8.0, 8.1, 8.2, 8.3]
-        laravel: [10.*, 11.*]
+        php: [8.0]
+        laravel: [9.*]
         stability: [prefer-lowest, prefer-stable]
-        exclude:
-          - laravel: 11.*
-            php: 8.0
-          - laravel: 11.*
-            php: 8.1
+        include:
+          - php: 8.1
+            laravel: 9.*
+          - php: 8.1
+            laravel: 10.*
+          - php: 8.2
+            laravel: 10.*
+          - php: 8.2
+            laravel: 11.*
+          - php: 8.3
+            laravel: 11.*
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }}
 
@@ -37,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
 
       - name: Execute tests
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit --verbose

@@ -1,0 +1,10 @@
+# phpstan.neon.dist
+parameters:
+    level: 5
+    paths:
+        - src
+        - tests
+    tmpDir: build/phpstan
+    checkOctaneCompatibility: true
+    checkModelProperties: true
+    checkMissingIterableValueType: false
