@@ -1,0 +1,22 @@
+/vendor/
+composer.lock
+.php-cs-fixer.cache
+.phpunit.cache
+.phpunit.result.cache
+.idea
+.vscode
+*.cache
+*.log
+
+# .gitattributes
+* text=auto
+
+/.github export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/phpunit.xml.dist export-ignore
+/tests export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/phpstan.neon.dist export-ignore
+/CHANGELOG.md export-ignore
+/README.md export-ignore
