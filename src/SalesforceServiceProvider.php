@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace YourVendor\LaravelSalesforce;
+namespace Antogkou\LaravelSalesforce;
 
 use Illuminate\Support\ServiceProvider;
 
