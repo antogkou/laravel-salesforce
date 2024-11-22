@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Antogkou\LaravelSalesforce\Tests\TestCase;
 
 /*
@@ -16,24 +18,3 @@ uses(TestCase::class)
         // Add any global teardown here
     })
     ->in(__DIR__);
-
-/*
-|--------------------------------------------------------------------------
-| Expectations
-|--------------------------------------------------------------------------
-*/
-
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
-
-/*
-|--------------------------------------------------------------------------
-| Functions
-|--------------------------------------------------------------------------
-*/
-
-function something()
-{
-    // ..
-}

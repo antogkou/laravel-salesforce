@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Antogkou\LaravelSalesforce\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
-class TestConfigCommand extends Command
+final class TestConfigCommand extends Command
 {
     protected $signature = 'salesforce:test-config';
 
@@ -17,18 +20,26 @@ class TestConfigCommand extends Command
         // Test config access
         $config = config('salesforce');
 
-        if ($config === null) {
-            $this->error('Config not found!');
+        if (! is_array($config)) {
+            $this->error('Config not found or invalid!');
 
             return 1;
         }
 
         $this->info('Config loaded successfully:');
+
+        /** @var Collection<int, array{0: string, 1: string}> */
+        $tableRows = collect($config)
+            ->map(function ($value, string $key): array {
+                return [
+                    $key,
+                    is_string($value) ? $value : var_export($value, true),
+                ];
+            });
+
         $this->table(
             ['Key', 'Value'],
-            collect($config)
-                ->map(fn ($value, $key) => [$key, is_string($value) ? $value : var_export($value, true)])
-                ->toArray()
+            $tableRows->toArray()
         );
 
         return 0;

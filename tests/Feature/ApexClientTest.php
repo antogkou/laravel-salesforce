@@ -1,17 +1,13 @@
 <?php
 
-// tests/Feature/ApexClientTest.php
+declare(strict_types=1);
 
 use Antogkou\LaravelSalesforce\ApexClient;
 use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
-beforeEach(function () {
-    $this->client = app(ApexClient::class)->setEmail('test@test.com');
-});
-
-it('can get token', function () {
+it('can get token', closure: function () {
     Http::fake([
         'https://test.salesforce.com/services/oauth2/token' => Http::response([
             'access_token' => 'test-token',
@@ -20,8 +16,7 @@ it('can get token', function () {
             'data' => 'success',
         ]),
     ]);
-
-    $response = $this->client->get('/test');
+    $response = app(ApexClient::class)->setEmail('test@test.com')->get('/test');
 
     Http::assertSent(function (Request $request) {
         return $request->hasHeader('Authorization', 'Bearer test-token') &&
@@ -42,5 +37,5 @@ it('throws exception on error', function () {
         ], 400),
     ]);
 
-    $this->client->get('/test');
+    app(ApexClient::class)->setEmail('test@test.com')->get('/test');
 })->throws(SalesforceException::class, 'error');

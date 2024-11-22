@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // src/ApexClient.php
 
 namespace Antogkou\LaravelSalesforce;
@@ -10,12 +12,14 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class ApexClient
+final class ApexClient
 {
     private const TOKEN_CACHE_KEY = 'salesforceToken';
 
@@ -39,6 +43,9 @@ class ApexClient
     }
 
     /**
+     * @param  array<string, mixed>  $query
+     * @param  array<string, string>  $additionalHeaders
+     *
      * @throws RequestException
      * @throws SalesforceException
      */
@@ -48,6 +55,56 @@ class ApexClient
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws SalesforceException|RequestException
+     */
+    public function post(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'post', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function put(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'put', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function patch(string $url, array $data, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'patch', url: $url, data: $data, additionalHeaders: $additionalHeaders);
+    }
+
+    /**
+     * @param  array<string, string>  $additionalHeaders
+     *
+     * @throws RequestException
+     * @throws SalesforceException
+     */
+    public function delete(string $url, array $additionalHeaders = []): Response
+    {
+        return $this->sendRequest(method: 'delete', url: $url, data: [], additionalHeaders: $additionalHeaders);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $additionalHeaders
+     *
      * @throws RequestException
      * @throws SalesforceException
      */
@@ -123,6 +180,8 @@ class ApexClient
     }
 
     /**
+     * @param  array<string, string>  $additionalHeaders
+     *
      * @throws SalesforceException
      */
     private function request(array $additionalHeaders = []): PendingRequest
@@ -130,7 +189,7 @@ class ApexClient
         $headers = [
             'x-app-uuid' => config('salesforce.app_uuid'),
             'x-api-key' => config('salesforce.app_key'),
-            'x-user-email' => $this->userEmail ?? auth()->user()->email,
+            'x-user-email' => $this->userEmail ?? (Auth::user()?->email ?? ''),
         ];
         $mergedHeaders = array_merge($headers, $additionalHeaders);
 
@@ -143,6 +202,9 @@ class ApexClient
     private function baseUrl(): string
     {
         $apexUri = config('salesforce.apex_uri');
+        if (! is_string($apexUri)) {
+            throw new SalesforceException('Invalid apex_uri configuration');
+        }
 
         if (! Str::contains($apexUri, '.com:8443') && Arr::exists($this->options(), 'curl')) {
             $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
@@ -151,13 +213,16 @@ class ApexClient
         return rtrim($apexUri, '/');
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     private function options(): array
     {
         if (config('salesforce.certificate') && config('salesforce.certificate_key')) {
             return [
                 'curl' => [
-                    CURLOPT_SSLCERT => storage_path('certificates') . DIRECTORY_SEPARATOR . config('salesforce.certificate'),
-                    CURLOPT_SSLKEY => storage_path('certificates') . DIRECTORY_SEPARATOR . config('salesforce.certificate_key'),
+                    CURLOPT_SSLCERT => storage_path('certificates').DIRECTORY_SEPARATOR.config('salesforce.certificate'),
+                    CURLOPT_SSLKEY => storage_path('certificates').DIRECTORY_SEPARATOR.config('salesforce.certificate_key'),
                     CURLOPT_VERBOSE => config('app.debug'),
                 ],
             ];
@@ -184,12 +249,17 @@ class ApexClient
      */
     private function refreshToken(): string
     {
-        $response = Http::asForm()->post(config('salesforce.token_uri'), [
+        $tokenUri = config('salesforce.token_uri');
+        if (! is_string($tokenUri)) {
+            throw new SalesforceException('Invalid token_uri configuration');
+        }
+
+        $response = Http::asForm()->post($tokenUri, [
             'grant_type' => 'password',
             'client_id' => config('salesforce.client_id'),
             'client_secret' => config('salesforce.client_secret'),
             'username' => config('salesforce.username'),
-            'password' => config('salesforce.password') . config('salesforce.security_token'),
+            'password' => config('salesforce.password').config('salesforce.security_token'),
         ]);
 
         if ($response->successful()) {
@@ -202,7 +272,7 @@ class ApexClient
         // If we reach here, either the response was not successful or the token was invalid
         $errorMessage = $response->successful()
           ? 'Invalid token received from Salesforce'
-          : 'Failed to refresh token: ' . $response->body();
+          : 'Failed to refresh token: '.$response->body();
 
         throw new SalesforceException(
             $errorMessage,
@@ -213,19 +283,14 @@ class ApexClient
     }
 
     /**
-     * @throws SalesforceException|RequestException
+     * @param  array<string, mixed>  $query
      */
-    public function post(string $url, array $data, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'post', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-    }
-
     private function buildUrl(string $url, array $query = []): string
     {
         $baseUrl = $this->baseUrl();
         $fullUrl = Str::startsWith($url, ['http://', 'https://'])
           ? $url
-          : $baseUrl . '/' . ltrim($url, '/');
+          : $baseUrl.'/'.ltrim($url, '/');
 
         $request = Request::create($fullUrl);
 
@@ -236,45 +301,42 @@ class ApexClient
         );
 
         return $request->getSchemeAndHttpHost()
-          . $request->getPathInfo()
-          . (! empty($mergedQuery) ? '?' . http_build_query($mergedQuery) : '');
+          .$request->getPathInfo()
+          .(! empty($mergedQuery) ? '?'.http_build_query($mergedQuery) : '');
     }
 
+    /**
+     * @return array{uri: string, name: string|null, action: string|null}
+     */
     private function getRouteInfo(): array
     {
+        if (! $this->request) {
+            return [
+                'uri' => '',
+                'name' => null,
+                'action' => null,
+            ];
+        }
+
         $route = $this->request->route();
+
+        // Early return if route is null
+        if (! $route instanceof Route) {
+            return [
+                'uri' => $this->request->path(),
+                'name' => null,
+                'action' => null,
+            ];
+        }
+
+        // Now TypeScript knows $route is definitely a Route instance
+        $name = $route->getName();
+        $action = $route->getActionName();
 
         return [
             'uri' => $this->request->path(),
-            'name' => $route ? $route->getName() : null,
-            'action' => $route ? $route->getActionName() : null,
+            'name' => $name ? (string) $name : null,
+            'action' => $action ? (string) $action : null,
         ];
-    }
-
-    /**
-     * @throws RequestException
-     * @throws SalesforceException
-     */
-    public function put(string $url, array $data, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'put', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-    }
-
-    /**
-     * @throws RequestException
-     * @throws SalesforceException
-     */
-    public function patch(string $url, array $data, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'patch', url: $url, data: $data, additionalHeaders: $additionalHeaders);
-    }
-
-    /**
-     * @throws RequestException
-     * @throws SalesforceException
-     */
-    public function delete(string $url, array $additionalHeaders = []): Response
-    {
-        return $this->sendRequest(method: 'delete', url: $url, data: [], additionalHeaders: $additionalHeaders);
     }
 }

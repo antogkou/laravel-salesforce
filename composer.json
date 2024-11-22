@@ -30,7 +30,8 @@
         "orchestra/testbench": "^8.0|^9.0",
         "pestphp/pest": "^v3.5.1",
         "pestphp/pest-plugin-laravel": "^v3.0.0",
-        "phpstan/phpstan": "^1.0"
+        "phpstan/phpstan": "^1.0",
+        "friendsofphp/php-cs-fixer": "^v3.64.0"
     },
     "extra": {
         "laravel": {

@@ -6,7 +6,7 @@ namespace Antogkou\LaravelSalesforce;
 
 use Illuminate\Support\ServiceProvider;
 
-class SalesforceServiceProvider extends ServiceProvider
+final class SalesforceServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
@@ -15,7 +15,7 @@ class SalesforceServiceProvider extends ServiceProvider
     {
         // Register config
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/salesforce.php',
+            __DIR__.'/../config/salesforce.php',
             'salesforce'
         );
 
@@ -36,7 +36,7 @@ class SalesforceServiceProvider extends ServiceProvider
         // Publish config
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/salesforce.php' => config_path('salesforce.php'),
+                __DIR__.'/../config/salesforce.php' => config_path('salesforce.php'),
             ], 'salesforce-config');
         }
     }

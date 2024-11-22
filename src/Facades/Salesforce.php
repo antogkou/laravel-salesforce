@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // src/Facades/Salesforce.php
 
 namespace Antogkou\LaravelSalesforce\Facades;
@@ -22,7 +24,7 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Antogkou\LaravelSalesforce\ApexClient
  */
-class Salesforce extends Facade
+final class Salesforce extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
