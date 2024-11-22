@@ -2,18 +2,24 @@
 
 declare(strict_types=1);
 
-# src/SalesforceServiceProvider.php
-namespace Antogkou\LaravelSalesforce;
+namespace YourVendor\LaravelSalesforce;
 
-use App\Http\Integrations\ApexClient;
 use Illuminate\Support\ServiceProvider;
 
 class SalesforceServiceProvider extends ServiceProvider
 {
+  /**
+   * Register any application services.
+   */
   public function register(): void
   {
-    $this->mergeConfigFrom(__DIR__ . '../config/salesforce.php', 'salesforce');
+    // Register config
+    $this->mergeConfigFrom(
+      __DIR__ . '/../config/salesforce.php',
+      'salesforce'
+    );
 
+    // Register singleton
     $this->app->singleton('salesforce', function ($app) {
       return new ApexClient(
         userEmail: null,
@@ -22,10 +28,16 @@ class SalesforceServiceProvider extends ServiceProvider
     });
   }
 
+  /**
+   * Bootstrap any application services.
+   */
   public function boot(): void
   {
-    $this->publishes([
-      __DIR__ . '../config/salesforce.php' => config_path('salesforce.php'),
-    ], 'salesforce-config');
+    // Publish config
+    if ($this->app->runningInConsole()) {
+      $this->publishes([
+        __DIR__ . '/../config/salesforce.php' => config_path('salesforce.php'),
+      ], 'salesforce-config');
+    }
   }
 }
