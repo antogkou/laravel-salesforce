@@ -7,7 +7,7 @@ namespace Antogkou\LaravelSalesforce\Tests;
 use Antogkou\LaravelSalesforce\SalesforceServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
-final class TestCase extends Orchestra
+abstract class TestCase extends Orchestra
 {
     protected function setUp(): void
     {
