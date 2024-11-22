@@ -8,10 +8,6 @@
         <testsuite name="Antogkou Test Suite">
             <directory>tests</directory>
         </testsuite>
-        <testsuite name="Arch">
-            <file>tests/ArchTest.php</file>
-            <directory>tests/Arch</directory>
-        </testsuite>
     </testsuites>
     <coverage>
         <report>
