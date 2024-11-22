@@ -33,59 +33,6 @@ final class SalesforceServiceProvider extends ServiceProvider
     }
 
     /**
-     * Ensure all required configuration values exist.
-     *
-     * @throws RuntimeException
-     */
-    private function ensureConfigExists(Repository $config): void
-    {
-        $requiredKeys = [
-            'app_uuid',
-            'app_key',
-            'apex_uri',
-            'token_uri',
-            'client_id',
-            'client_secret',
-            'username',
-            'password',
-            'security_token',
-        ];
-
-        $missingKeys = array_filter($requiredKeys, fn(string $key): bool => empty($config->get("salesforce.{$key}"))
-        );
-
-        if ($missingKeys !== []) {
-            throw new RuntimeException(sprintf(
-                'Missing required Salesforce configuration keys: %s',
-                implode(', ', $missingKeys)
-            ));
-        }
-
-        // Validate URLs
-        $urls = ['apex_uri', 'token_uri'];
-        foreach ($urls as $key) {
-            $url = $config->get("salesforce.{$key}");
-            if (!filter_var($url, FILTER_VALIDATE_URL)) {
-                throw new RuntimeException(
-                    "Invalid URL format for salesforce.{$key}: {$url}"
-                );
-            }
-        }
-
-        // Validate certificate configuration consistency
-        $certConfig = [
-            'certificate' => $config->get('salesforce.certificate'),
-            'certificate_key' => $config->get('salesforce.certificate_key'),
-        ];
-
-        if (array_filter($certConfig) !== [] && array_filter($certConfig) !== $certConfig) {
-            throw new RuntimeException(
-                'Both certificate and certificate_key must be provided if using certificate authentication'
-            );
-        }
-    }
-
-    /**
      * Bootstrap the application services.
      */
     public function boot(): void
@@ -112,5 +59,58 @@ final class SalesforceServiceProvider extends ServiceProvider
             'salesforce',
             ApexClient::class,
         ];
+    }
+
+    /**
+     * Ensure all required configuration values exist.
+     *
+     * @throws RuntimeException
+     */
+    private function ensureConfigExists(Repository $config): void
+    {
+        $requiredKeys = [
+            'app_uuid',
+            'app_key',
+            'apex_uri',
+            'token_uri',
+            'client_id',
+            'client_secret',
+            'username',
+            'password',
+            'security_token',
+        ];
+
+        $missingKeys = array_filter($requiredKeys, fn (string $key): bool => empty($config->get("salesforce.{$key}"))
+        );
+
+        if ($missingKeys !== []) {
+            throw new RuntimeException(sprintf(
+                'Missing required Salesforce configuration keys: %s',
+                implode(', ', $missingKeys)
+            ));
+        }
+
+        // Validate URLs
+        $urls = ['apex_uri', 'token_uri'];
+        foreach ($urls as $key) {
+            $url = $config->get("salesforce.{$key}");
+            if (! filter_var($url, FILTER_VALIDATE_URL)) {
+                throw new RuntimeException(
+                    "Invalid URL format for salesforce.{$key}: {$url}"
+                );
+            }
+        }
+
+        // Validate certificate configuration consistency
+        $certConfig = [
+            'certificate' => $config->get('salesforce.certificate'),
+            'certificate_key' => $config->get('salesforce.certificate_key'),
+        ];
+
+        if (array_filter($certConfig) !== [] && array_filter($certConfig) !== $certConfig) {
+            throw new RuntimeException(
+                'Both certificate and certificate_key must be provided if using certificate authentication'
+            );
+        }
     }
 }
