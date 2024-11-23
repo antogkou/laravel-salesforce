@@ -62,10 +62,10 @@ SALESFORCE_CLIENT_SECRET=your-client-secret
 SALESFORCE_USERNAME=your-username
 SALESFORCE_PASSWORD=your-password
 SALESFORCE_SECURITY_TOKEN=your-security-token
+SALESFORCE_APEX_URI=https://salesforce-instance.com/services/apexrest
 
-# Optional: Default endpoints (these defaults are for sandbox)
+# Optional: Default endpoints (these defaults are for sandboxes)
 SALESFORCE_TOKEN_URI=https://test.salesforce.com/services/oauth2/token
-SALESFORCE_APEX_URI=https://test.salesforce.com/services/apexrest
 ```
 
 ### Optional: Custom Apex Authentication
