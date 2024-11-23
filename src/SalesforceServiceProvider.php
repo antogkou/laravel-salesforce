@@ -69,8 +69,6 @@ final class SalesforceServiceProvider extends ServiceProvider
     private function ensureConfigExists(Repository $config): void
     {
         $requiredKeys = [
-            'app_uuid',
-            'app_key',
             'apex_uri',
             'token_uri',
             'client_id',

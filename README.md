@@ -11,11 +11,11 @@ APIs.
 ## Features
 
 - 🚀 Simple and intuitive API
-- 🔒 Secure authentication handling
+- 🔑 Flexible authentication options
+- 🔒 Supports custom Apex class authentication
+- 🌐 OAuth 2.0 integration
 - 📦 Automatic token management
-- 🔄 Retry mechanism for failed requests
-- 📝 Comprehensive logging
-- 🔐 Certificate-based authentication support
+- 🔐 Optional certificate-based authentication
 - ⚡ Request/Response interceptors
 
 ## Requirements
@@ -51,56 +51,86 @@ php artisan vendor:publish --tag="salesforce-certificates"
 
 ## Configuration
 
-1. Add the following environment variables to your `.env` file:
+### Required Configuration
+
+Add these essential environment variables to your `.env` file:
 
 ```env
-SALESFORCE_APP_UUID=your-app-uuid
-SALESFORCE_APP_KEY=your-app-key
+# Required: Salesforce OAuth Credentials
 SALESFORCE_CLIENT_ID=your-client-id
 SALESFORCE_CLIENT_SECRET=your-client-secret
 SALESFORCE_USERNAME=your-username
 SALESFORCE_PASSWORD=your-password
 SALESFORCE_SECURITY_TOKEN=your-security-token
+
+# Optional: Default endpoints (these defaults are for sandbox)
 SALESFORCE_TOKEN_URI=https://test.salesforce.com/services/oauth2/token
 SALESFORCE_APEX_URI=https://test.salesforce.com/services/apexrest
-SALESFORCE_DEFAULT_USER_EMAIL=default@example.com
+```
 
-# Optional - For certificate-based authentication
+### Optional: Custom Apex Authentication
+
+If your Salesforce Apex classes implement custom application-level authentication, you can configure it using:
+
+```env
+# Optional: Custom Apex Authentication
+SALESFORCE_APP_UUID=your-app-uuid
+SALESFORCE_APP_KEY=your-app-key
+```
+
+This adds `x-app-uuid` and `x-app-key` headers to your requests, which you can validate in your Apex classes:
+
+```apex
+@RestResource(urlMapping='/your-endpoint/*')
+global with sharing class YourApexClass {
+    @HttpGet
+    global static Response doGet() {
+        // Validate application credentials
+        String appUuid = RestContext.request.headers.get('x-app-uuid');
+        String appKey = RestContext.request.headers.get('x-app-key');
+        
+        if (!YourAuthService.validateApp(appUuid, appKey)) {
+            throw new CustomException('Invalid application credentials');
+        }
+        
+        // Your endpoint logic...
+    }
+}
+```
+
+### Optional: Certificate Authentication
+
+For certificate-based authentication:
+
+```env
+# Optional: Certificate Authentication
 SALESFORCE_CERTIFICATE=cert.pem
 SALESFORCE_CERTIFICATE_KEY=cert.key
 ```
 
-2. Configure certificate-based authentication (optional):
+### Optional: Default User Context
 
-Place your certificates in the `storage/certificates` directory:
+```env
+# Optional: Default User Email
+SALESFORCE_DEFAULT_USER_EMAIL=default@example.com
+```
 
-- `cert.pem`: Your SSL certificate
-- `cert.key`: Your SSL private key
-
-## Usage
-
-### Basic Usage
+## Basic Usage
 
 ```php
 use Antogkou\LaravelSalesforce\Facades\Salesforce;
 
-// GET request
+// Basic request
 $response = Salesforce::get('/endpoint');
 
-// POST request with data
-$response = Salesforce::post('/endpoint', [
-    'name' => 'John Doe',
-    'email' => 'john@example.com'
+// With custom user context
+$response = Salesforce::setEmail('user@example.com')
+    ->get('/endpoint');
+
+// With custom headers
+$response = Salesforce::post('/endpoint', $data, [
+    'Custom-Header' => 'Value'
 ]);
-
-// PUT request
-$response = Salesforce::put('/endpoint', ['status' => 'active']);
-
-// PATCH request
-$response = Salesforce::patch('/endpoint', ['partial' => 'update']);
-
-// DELETE request
-$response = Salesforce::delete('/endpoint');
 ```
 
 ### Advanced Usage

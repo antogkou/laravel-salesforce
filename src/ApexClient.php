@@ -6,11 +6,10 @@ namespace Antogkou\LaravelSalesforce;
 
 use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Exception;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -105,9 +104,6 @@ final class ApexClient
             ->withOptions($this->getRequestOptions());
     }
 
-    /**
-     * @throws SalesforceException
-     */
     private function getBaseUrl(): string
     {
         $apexUri = config('salesforce.apex_uri');
@@ -115,26 +111,15 @@ final class ApexClient
             throw new SalesforceException('Invalid apex_uri configuration');
         }
 
-        if (! Str::contains($apexUri, '.com:8443') && Arr::exists($this->getRequestOptions(), 'curl')) {
+        // Add port 8443 for certificate-based connections
+        if (config('salesforce.certificate') &&
+            config('salesforce.certificate_key') &&
+            ! Str::contains($apexUri, '.com:8443')
+        ) {
             $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
         }
 
         return rtrim($apexUri, '/');
-    }
-
-    private function getRequestOptions(): array
-    {
-        if (! config('salesforce.certificate') || ! config('salesforce.certificate_key')) {
-            return [];
-        }
-
-        return [
-            'curl' => [
-                CURLOPT_SSLCERT => storage_path('certificates/'.config('salesforce.certificate')),
-                CURLOPT_SSLKEY => storage_path('certificates/'.config('salesforce.certificate_key')),
-                CURLOPT_VERBOSE => config('app.debug'),
-            ],
-        ];
     }
 
     /**
@@ -155,7 +140,7 @@ final class ApexClient
     }
 
     /**
-     * @throws SalesforceException|ConnectionException
+     * @throws SalesforceException
      */
     private function refreshToken(): string
     {
@@ -164,36 +149,104 @@ final class ApexClient
             throw new SalesforceException('Invalid token_uri configuration');
         }
 
-        $response = Http::asForm()->post($tokenUri, [
-            'grant_type' => 'password',
-            'client_id' => config('salesforce.client_id'),
-            'client_secret' => config('salesforce.client_secret'),
-            'username' => config('salesforce.username'),
-            'password' => config('salesforce.password').config('salesforce.security_token'),
-        ]);
+        try {
+            $response = Http::asForm()->post($tokenUri, [
+                'grant_type' => 'password',
+                'client_id' => config('salesforce.client_id'),
+                'client_secret' => config('salesforce.client_secret'),
+                'username' => config('salesforce.username'),
+                'password' => config('salesforce.password').config('salesforce.security_token'),
+            ]);
 
-        if ($response->successful()) {
-            $token = $response->json('access_token');
-            if (is_string($token) && $token !== '' && $token !== '0') {
-                return $token;
+            if (! $response->successful()) {
+                throw new SalesforceException(
+                    'Failed to refresh token: '.$response->body(),
+                    $response->status()
+                );
             }
-        }
 
-        throw new SalesforceException(
-            $response->successful() ? 'Invalid token received' : 'Failed to refresh token: '.$response->body(),
-            $response->status() ?: 500,
-            null,
-            ['response' => $response->json()]
-        );
+            $token = $response->json('access_token');
+
+            if (! is_string($token) || $token === '' || $token === '0') {
+                throw new SalesforceException(
+                    'Invalid token received from Salesforce',
+                    $response->status()
+                );
+            }
+
+            return $token;
+
+        } catch (Exception $e) {
+            if ($e instanceof SalesforceException) {
+                throw $e;
+            }
+
+            throw new SalesforceException(
+                'Failed to refresh token: '.$e->getMessage(),
+                500,
+                $e
+            );
+        }
     }
 
+    /**
+     * Build headers for the request including optional application authentication.
+     */
     private function buildHeaders(array $additionalHeaders): array
     {
-        return array_merge([
-            'x-app-uuid' => config('salesforce.app_uuid'),
-            'x-api-key' => config('salesforce.app_key'),
-            'x-user-email' => $this->userEmail ?? (Auth::user()?->email ?? ''),
-        ], $additionalHeaders);
+        $headers = [];
+
+        // Add optional application authentication headers
+        $appUuid = config('salesforce.app_uuid');
+        $appKey = config('salesforce.app_key');
+
+        if ($appUuid && $appKey) {
+            $headers['x-app-uuid'] = $appUuid;
+            $headers['x-app-key'] = $appKey;
+        }
+
+        // Add user email if available
+        if ($this->userEmail ?? (Auth::user()?->email ?? null)) {
+            $headers['x-user-email'] = $this->userEmail ?? Auth::user()?->email;
+        }
+
+        return array_merge($headers, $additionalHeaders);
+    }
+
+    private function getRequestOptions(): array
+    {
+        $certificate = config('salesforce.certificate');
+        $certificateKey = config('salesforce.certificate_key');
+
+        // If neither is set, return empty options
+        if (! $certificate && ! $certificateKey) {
+            return [];
+        }
+
+        // If one is set but not the other, throw exception
+        if (($certificate && ! $certificateKey) || (! $certificate && $certificateKey)) {
+            throw new SalesforceException(
+                'Both certificate and certificate_key must be provided if using certificate authentication'
+            );
+        }
+
+        $certificatePath = storage_path('certificates').DIRECTORY_SEPARATOR.$certificate;
+        $certificateKeyPath = storage_path('certificates').DIRECTORY_SEPARATOR.$certificateKey;
+
+        // Only add certificate options if the files exist
+        if (! File::exists($certificatePath) || ! File::exists($certificateKeyPath)) {
+            throw new SalesforceException(
+                'Certificate files not found. Please ensure they exist in the storage/certificates directory.'
+            );
+        }
+
+        return [
+            'curl' => [
+                CURLOPT_SSLCERT => $certificatePath,
+                CURLOPT_SSLKEY => $certificateKeyPath,
+                CURLOPT_VERBOSE => config('app.debug'),
+            ],
+        ];
     }
 
     /**
