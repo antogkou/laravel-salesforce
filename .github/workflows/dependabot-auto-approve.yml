@@ -1,16 +1,18 @@
-name: Dependabot Auto-approve
-on: pull_request_target
-
-permissions:
-  pull-requests: write
+name: Auto Approve Dependencies
+on:
+  pull_request:
+    types: [ opened, reopened, synchronize ]
 
 jobs:
-  dependabot:
+  auto-approve:
     runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' }}
+    permissions:
+      pull-requests: write
+    if: |
+      github.actor == 'dependabot[bot]' ||
+      github.actor == 'dependabot-preview[bot]'
     steps:
-      - name: Approve Dependabot PR
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Auto approve PR
+        uses: hmarr/auto-approve-action@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
