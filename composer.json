@@ -77,5 +77,8 @@
     }
   },
   "minimum-stability": "dev",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "support": {
+    "security": "https://github.com/antogkou/laravel-salesforce/security/policy"
+  }
 }
