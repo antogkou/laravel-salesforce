@@ -16,7 +16,7 @@ We take the security of `laravel-salesforce` seriously. If you believe you have 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
 Instead, please report them via email to:
-- Primary: [your-security-email@example.com](mailto:gkoutzamanis.a@gmail.com)
+- Primary: [gkoutzamanis.a@gmail.com](mailto:gkoutzamanis.a@gmail.com)
 - Secondary: Create a [GitHub Security Advisory](https://github.com/antogkou/laravel-salesforce/security/advisories/new)
 
 You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
