@@ -13,36 +13,67 @@ use Illuminate\Support\Facades\Http;
 beforeEach(function () {
     Cache::flush();
 
+    // Clear any existing configuration
+    Config::set('salesforce', null);
+
+    // Set up fresh configuration
     Config::set([
-        'salesforce.app_uuid' => 'test-uuid',
-        'salesforce.app_key' => 'test-key',
-        'salesforce.client_id' => 'test-client',
-        'salesforce.client_secret' => 'test-secret',
-        'salesforce.username' => 'test-user',
-        'salesforce.password' => 'test-pass',
-        'salesforce.security_token' => 'test-token',
-        'salesforce.token_uri' => 'https://test.salesforce.com/services/oauth2/token',
-        'salesforce.apex_uri' => 'https://test.salesforce.com/services/apexrest',
+        'salesforce.default' => 'default',
+        'salesforce.connections.default' => [
+            'app_uuid' => 'test-uuid',
+            'app_key' => 'test-key',
+            'client_id' => 'test-client',
+            'client_secret' => 'test-secret',
+            'username' => 'test-user',
+            'password' => 'test-pass',
+            'security_token' => 'test-token',
+            'token_uri' => 'https://test.salesforce.com/services/oauth2/token',
+            'apex_uri' => 'https://test.salesforce.com/services/apexrest',
+        ],
+        'salesforce.connections.sandbox' => [
+            'app_uuid' => 'sandbox-uuid',
+            'app_key' => 'sandbox-key',
+            'client_id' => 'sandbox-client',
+            'client_secret' => 'sandbox-secret',
+            'username' => 'sandbox-user',
+            'password' => 'sandbox-pass',
+            'security_token' => 'sandbox-token',
+            'token_uri' => 'https://sandbox.salesforce.com/services/oauth2/token',
+            'apex_uri' => 'https://sandbox.salesforce.com/services/apexrest',
+        ],
     ]);
 
     Http::fake([
-        'test.salesforce.com/services/oauth2/token' => Http::response([
+        '*test.salesforce.com/services/oauth2/token' => Http::response([
             'access_token' => 'test-token',
+        ]),
+        '*sandbox.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
         ]),
     ]);
 });
 
 it('can make request without optional app headers', function (): void {
-    Config::set([
-        'salesforce.app_uuid' => null,
-        'salesforce.app_key' => null,
-    ]);
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        [
+            'app_uuid' => null,
+            'app_key' => null,
+            'client_id' => 'test-client',
+            'client_secret' => 'test-secret',
+            'username' => 'test-user',
+            'password' => 'test-pass',
+            'security_token' => 'test-token',
+            'token_uri' => 'https://test.salesforce.com/services/oauth2/token',
+            'apex_uri' => 'https://test.salesforce.com/services/apexrest',
+        ]
+    ));
 
     Http::fake([
-        'https://test.salesforce.com/services/oauth2/token' => Http::response([
+        'test.salesforce.com/services/oauth2/token' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://test.salesforce.com/services/apexrest/test' => Http::response([
+        'test.salesforce.com/services/apexrest/test' => Http::response([
             'data' => 'success',
         ]),
     ]);
@@ -142,13 +173,16 @@ it('correctly builds URLs with query parameters', function (): void {
 });
 
 it('uses default user email from config', function (): void {
-    Config::set('salesforce.default_user_email', 'default@test.com');
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        ['default_user_email' => 'default@test.com']
+    ));
 
     Http::fake([
-        'https://test.salesforce.com/services/oauth2/token' => Http::response([
+        'test.salesforce.com/services/oauth2/token' => Http::response([
             'access_token' => 'test-token',
         ]),
-        'https://test.salesforce.com/services/apexrest/test' => Http::response([
+        'test.salesforce.com/services/apexrest/test' => Http::response([
             'data' => 'success',
         ]),
     ]);
@@ -171,10 +205,13 @@ it('handles certificate-based authentication', function (): void {
     File::shouldReceive('exists')->andReturn(true);
     File::shouldReceive('get')->andReturn('certificate content');
 
-    Config::set([
-        'salesforce.certificate' => 'cert.pem',
-        'salesforce.certificate_key' => 'cert.key',
-    ]);
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        [
+            'certificate' => 'cert.pem',
+            'certificate_key' => 'cert.key',
+        ]
+    ));
 
     Http::fake([
         'test.salesforce.com/services/oauth2/token' => Http::response([
@@ -206,10 +243,13 @@ it('handles certificate-based authentication', function (): void {
 });
 
 it('skips certificate configuration when certificates are not set', function (): void {
-    Config::set([
-        'salesforce.certificate' => null,
-        'salesforce.certificate_key' => null,
-    ]);
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        [
+            'certificate' => null,
+            'certificate_key' => null,
+        ]
+    ));
 
     Http::fake([
         'test.salesforce.com/services/oauth2/token' => Http::response([
@@ -235,22 +275,28 @@ it('skips certificate configuration when certificates are not set', function ():
 
 it('throws exception when only one certificate setting is provided', function (): void {
     // Test with only certificate
-    Config::set([
-        'salesforce.certificate' => 'cert.pem',
-        'salesforce.certificate_key' => null,
-    ]);
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        [
+            'certificate' => 'cert.pem',
+            'certificate_key' => null,
+        ]
+    ));
 
     expect(fn () => app(ApexClient::class)->get('/test'))
-        ->toThrow(RuntimeException::class, 'Both certificate and certificate_key must be provided');
+        ->toThrow(SalesforceException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
 
     // Test with only key
-    Config::set([
-        'salesforce.certificate' => null,
-        'salesforce.certificate_key' => 'cert.key',
-    ]);
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        [
+            'certificate' => null,
+            'certificate_key' => 'cert.key',
+        ]
+    ));
 
     expect(fn () => app(ApexClient::class)->get('/test'))
-        ->toThrow(RuntimeException::class, 'Both certificate and certificate_key must be provided');
+        ->toThrow(SalesforceException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
 });
 
 it('handles port 8443 for certificate URLs correctly', function (): void {
@@ -258,11 +304,14 @@ it('handles port 8443 for certificate URLs correctly', function (): void {
     File::shouldReceive('exists')->andReturn(true);
     File::shouldReceive('get')->andReturn('certificate content');
 
-    Config::set([
-        'salesforce.certificate' => 'cert.pem',
-        'salesforce.certificate_key' => 'cert.key',
-        'salesforce.apex_uri' => 'https://test.salesforce.com/services/apexrest',
-    ]);
+    Config::set('salesforce.connections.default', array_merge(
+        Config::get('salesforce.connections.default', []),
+        [
+            'certificate' => 'cert.pem',
+            'certificate_key' => 'cert.key',
+            'apex_uri' => 'https://test.salesforce.com/services/apexrest',
+        ]
+    ));
 
     $client = app(ApexClient::class);
 
@@ -400,6 +449,159 @@ it('successfully refreshes valid token', function (): void {
 
     $response = app(ApexClient::class)->get('/test');
     expect($response->json())->toBe(['data' => 'success']);
+});
+
+it('uses default connection by default', function (): void {
+    $client = app(ApexClient::class);
+    expect($client->getConnection())->toBe('default');
+});
+
+it('can switch connections', function (): void {
+    $client = app(ApexClient::class);
+    
+    $client->connection('sandbox');
+    expect($client->getConnection())->toBe('sandbox');
+    
+    $client->connection('default');
+    expect($client->getConnection())->toBe('default');
+});
+
+it('uses environment-specific connection when environment matches', function (): void {
+    app()->detectEnvironment(fn () => 'staging');
+    
+    $client = app(ApexClient::class);
+    $client->whenEnvironment('sandbox', 'staging');
+    
+    expect($client->getConnection())->toBe('sandbox');
+});
+
+it('uses default connection when environment does not match', function (): void {
+    app()->detectEnvironment(fn () => 'production');
+    
+    $client = app(ApexClient::class);
+    $client->whenEnvironment('sandbox', 'staging');
+    
+    expect($client->getConnection())->toBe('default');
+});
+
+it('supports multiple environments in whenEnvironment', function (): void {
+    app()->detectEnvironment(fn () => 'testing');
+    
+    $client = app(ApexClient::class);
+    $client->whenEnvironment('sandbox', ['staging', 'testing']);
+    
+    expect($client->getConnection())->toBe('sandbox');
+});
+
+it('falls back to default connection when environment connection is not configured', function (): void {
+    app()->detectEnvironment(fn () => 'staging');
+    
+    Config::set('salesforce.connections.sandbox', null);
+    
+    $client = app(ApexClient::class);
+    $client->whenEnvironment('sandbox', 'staging');
+    
+    Http::fake([
+        'test.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'test-token',
+        ]),
+        'test.salesforce.com/services/apexrest/test' => Http::response([
+            'data' => 'success',
+        ]),
+    ]);
+    
+    $response = $client->get('/test');
+    
+    expect($client->getConnection())->toBe('default')
+        ->and($response->json())->toBe(['data' => 'success']);
+});
+
+it('uses correct credentials for environment connection', function (): void {
+    app()->detectEnvironment(fn () => 'staging');
+    
+    Http::fake([
+        'sandbox.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'sandbox.salesforce.com/services/apexrest/test' => Http::response([
+            'data' => 'sandbox-success',
+        ]),
+    ]);
+    
+    $response = app(ApexClient::class)
+        ->whenEnvironment('sandbox', 'staging')
+        ->get('/test');
+    
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), 'sandbox.salesforce.com') &&
+            $request->hasHeader('Authorization', 'Bearer sandbox-token') &&
+            $request->hasHeader('x-app-uuid', 'sandbox-uuid') &&
+            $request->hasHeader('x-app-key', 'sandbox-key');
+    });
+    
+    expect($response->json())->toBe(['data' => 'sandbox-success']);
+});
+
+it('maintains environment connection across requests', function (): void {
+    app()->detectEnvironment(fn () => 'staging');
+    
+    $client = app(ApexClient::class)
+        ->whenEnvironment('sandbox', 'staging');
+    
+    Http::fake([
+        'sandbox.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'sandbox.salesforce.com/services/apexrest/*' => Http::response([
+            'data' => 'sandbox-success',
+        ]),
+    ]);
+    
+    // First request
+    $client->get('/test1');
+    
+    // Second request should still use sandbox connection
+    $client->get('/test2');
+    
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), 'sandbox.salesforce.com');
+    }, 3); // 1 token request + 2 API requests
+});
+
+it('clears token cache when switching connections', function (): void {
+    app()->detectEnvironment(fn () => 'staging');
+    
+    $client = app(ApexClient::class);
+    
+    Http::fake([
+        'test.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'test-token',
+        ]),
+        'sandbox.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'sandbox-token',
+        ]),
+        'test.salesforce.com/services/apexrest/*' => Http::response([
+            'data' => 'success',
+        ]),
+        'sandbox.salesforce.com/services/apexrest/*' => Http::response([
+            'data' => 'sandbox-success',
+        ]),
+    ]);
+    
+    // First request with default connection
+    $client->get('/test');
+    
+    // Switch to sandbox
+    $client->whenEnvironment('sandbox', 'staging')
+        ->get('/test');
+    
+    // Switch back to default
+    $client->connection('default')
+        ->get('/test');
+    
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), '/oauth2/token');
+    }, 3); // Should get new token for each connection switch
 });
 
 afterEach(function () {

@@ -51,6 +51,72 @@ php artisan vendor:publish --tag="salesforce-certificates"
 
 ## Configuration
 
+### Multiple Connections
+
+This package supports multiple Salesforce connections. You can configure them in your `.env` file and `config/salesforce.php`:
+
+```env
+# Default connection
+SALESFORCE_CONNECTION=default
+
+# Default connection credentials
+SALESFORCE_CLIENT_ID=your-client-id
+SALESFORCE_CLIENT_SECRET=your-client-secret
+SALESFORCE_USERNAME=your-username
+SALESFORCE_PASSWORD=your-password
+SALESFORCE_SECURITY_TOKEN=your-security-token
+SALESFORCE_APEX_URI=https://salesforce-instance.com/services/apexrest
+
+# Sandbox connection credentials
+SALESFORCE_SANDBOX_CLIENT_ID=sandbox-client-id
+SALESFORCE_SANDBOX_CLIENT_SECRET=sandbox-client-secret
+SALESFORCE_SANDBOX_USERNAME=sandbox-username
+SALESFORCE_SANDBOX_PASSWORD=sandbox-password
+SALESFORCE_SANDBOX_SECURITY_TOKEN=sandbox-security-token
+SALESFORCE_SANDBOX_APEX_URI=https://sandbox-instance.com/services/apexrest
+```
+
+You can switch between connections at runtime:
+
+```php
+use Antogkou\LaravelSalesforce\Facades\Salesforce;
+
+// Use the default connection
+$response = Salesforce::get('/endpoint');
+
+// Switch to sandbox connection
+$response = Salesforce::connection('sandbox')->get('/endpoint');
+
+// Switch back to default
+$response = Salesforce::connection('default')->get('/endpoint');
+
+// Chain with other methods
+$response = Salesforce::connection('sandbox')
+    ->setEmail('user@example.com')
+    ->get('/endpoint');
+
+// Use environment-specific connections
+$response = Salesforce::whenEnvironment('sandbox', 'staging')
+    ->get('/endpoint'); // Uses 'sandbox' connection only in staging environment
+
+// Use environment-specific connections with multiple environments
+$response = Salesforce::whenEnvironment('sandbox', ['staging', 'testing'])
+    ->get('/endpoint'); // Uses 'sandbox' connection in both staging and testing environments
+
+// If the environment-specific connection is not configured, falls back to default
+$response = Salesforce::whenEnvironment('sandbox', 'production')
+    ->get('/endpoint'); // Uses default connection in production
+```
+
+Each connection can have its own:
+- OAuth credentials
+- API endpoints
+- Application authentication
+- Certificate configuration
+- Default user email
+
+The package will always use the default connection unless explicitly changed using `connection()` or `whenEnvironment()`. If an environment-specific connection is set but not configured, it will automatically fall back to the default connection.
+
 ### Required Configuration
 
 Add these essential environment variables to your `.env` file:
