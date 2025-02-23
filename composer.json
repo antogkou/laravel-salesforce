@@ -26,13 +26,14 @@
     "guzzlehttp/guzzle": "^7.0"
   },
   "require-dev": {
+    "friendsofphp/php-cs-fixer": "^v3.64.0",
+    "larastan/larastan": "v2.9.11",
     "laravel/pint": "^1.13",
     "orchestra/testbench": "^8.0|^9.0",
     "pestphp/pest": "^v3.5.1",
     "pestphp/pest-plugin-laravel": "^v3.0.0",
+    "pestphp/pest-plugin-type-coverage": "^3.3",
     "phpstan/phpstan": "^1.0",
-    "friendsofphp/php-cs-fixer": "^v3.64.0",
-    "larastan/larastan": "v2.9.11",
     "rector/rector": "^1.2.10"
   },
   "extra": {
@@ -49,26 +50,18 @@
     "post-autoload-dump": [
       "@php ./vendor/bin/testbench package:discover --ansi"
     ],
-    "test": [
-      "@php vendor/bin/pest"
-    ],
-    "test-coverage": [
-      "@php vendor/bin/pest --coverage"
-    ],
-    "format": [
-      "@php vendor/bin/pint"
-    ],
-    "analyse": [
-      "@php vendor/bin/phpstan analyse"
-    ],
-    "verify": [
-      "@php vendor/bin/pint --test",
-      "@php vendor/bin/phpstan analyse",
-      "@php vendor/bin/pest"
-    ],
-    "refactor": "rector",
+    "test:type-coverage": "pest --type-coverage --min=100 --memory-limit=4G",
     "test:lint": "pint --test",
-    "test:refactor": "rector --dry-run"
+    "test:unit": "pest --parallel --coverage --exactly=100",
+    "test:types": "phpstan analyse --memory-limit=2G",
+    "test:refactor": "rector --dry-run",
+    "test": [
+      "@test:type-coverage",
+      "@test:unit",
+      "@test:lint",
+      "@test:types",
+      "@test:refactor"
+    ]
   },
   "config": {
     "sort-packages": true,

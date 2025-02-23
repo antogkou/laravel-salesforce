@@ -129,7 +129,7 @@ final class ApexClient
 
     private function getTokenCacheKey(): string
     {
-        return self::TOKEN_CACHE_KEY.'.'.$this->getConnection();
+        return self::TOKEN_CACHE_KEY . '.' . $this->getConnection();
     }
 
     /**
@@ -186,7 +186,8 @@ final class ApexClient
         }
 
         // Add port 8443 for certificate-based connections
-        if ($this->getConfig('certificate') &&
+        if (
+            $this->getConfig('certificate') &&
             $this->getConfig('certificate_key') &&
             ! Str::contains($apexUri, '.com:8443')
         ) {
@@ -205,7 +206,7 @@ final class ApexClient
             return cache()->remember(
                 $this->getTokenCacheKey(),
                 self::TOKEN_CACHE_TTL,
-                fn (): string => $this->refreshToken()
+                fn(): string => $this->refreshToken()
             );
         } catch (Exception $e) {
             Log::error('Failed to obtain Salesforce token', ['error' => $e->getMessage()]);
@@ -229,12 +230,12 @@ final class ApexClient
                 'client_id' => $this->getConfig('client_id'),
                 'client_secret' => $this->getConfig('client_secret'),
                 'username' => $this->getConfig('username'),
-                'password' => $this->getConfig('password').$this->getConfig('security_token'),
+                'password' => $this->getConfig('password') . $this->getConfig('security_token'),
             ]);
 
             if (! $response->successful()) {
                 throw new SalesforceException(
-                    'Failed to refresh token: '.$response->body(),
+                    'Failed to refresh token: ' . $response->body(),
                     $response->status()
                 );
             }
@@ -242,6 +243,7 @@ final class ApexClient
             $token = $response->json('access_token');
 
             if (! is_string($token) || $token === '' || $token === '0') {
+
                 throw new SalesforceException(
                     'Invalid token received from Salesforce',
                     $response->status()
@@ -249,14 +251,13 @@ final class ApexClient
             }
 
             return $token;
-
         } catch (Exception $e) {
             if ($e instanceof SalesforceException) {
                 throw $e;
             }
 
             throw new SalesforceException(
-                'Failed to refresh token: '.$e->getMessage(),
+                'Failed to refresh token: ' . $e->getMessage(),
                 500,
                 $e
             );
@@ -280,9 +281,11 @@ final class ApexClient
         }
 
         // Add user email if available
-        if ($this->userEmail ?? (Auth::user()?->email ?? null)) {
-            $headers['x-user-email'] = $this->userEmail ?? Auth::user()?->email;
+        $email = $this->userEmail;
+        if (!$email && auth()->check()) {
+            $email = auth()->user()?->email;
         }
+        $headers['x-user-email'] = $email ?? null;
 
         return array_merge($headers, $additionalHeaders);
     }
@@ -298,14 +301,14 @@ final class ApexClient
         }
 
         // If one is set but not the other, throw exception
-        if (($certificate && ! $certificateKey) || (! $certificate && $certificateKey)) {
+        if ($certificate xor $certificateKey) {
             throw new SalesforceException(
                 'Both certificate and certificate_key must be provided if using certificate authentication'
             );
         }
 
-        $certificatePath = storage_path('certificates').DIRECTORY_SEPARATOR.$certificate;
-        $certificateKeyPath = storage_path('certificates').DIRECTORY_SEPARATOR.$certificateKey;
+        $certificatePath = storage_path('certificates') . DIRECTORY_SEPARATOR . $certificate;
+        $certificateKeyPath = storage_path('certificates') . DIRECTORY_SEPARATOR . $certificateKey;
 
         // Only add certificate options if the files exist
         if (! File::exists($certificatePath) || ! File::exists($certificateKeyPath)) {
@@ -330,7 +333,7 @@ final class ApexClient
     {
         $fullUrl = Str::startsWith($url, ['http://', 'https://'])
             ? $url
-            : $this->getBaseUrl().'/'.ltrim($url, '/');
+            : $this->getBaseUrl() . '/' . ltrim($url, '/');
 
         $request = request()->create($fullUrl);
 
@@ -345,9 +348,9 @@ final class ApexClient
         }
 
         return $request->getSchemeAndHttpHost()
-            .$request->getBasePath()
-            .$request->getPathInfo()
-            .($mergedQuery !== [] ? '?'.http_build_query($mergedQuery) : '');
+            . $request->getBasePath()
+            . $request->getPathInfo()
+            . ($mergedQuery !== [] ? '?' . http_build_query($mergedQuery) : '');
     }
 
     private function executeRequest(PendingRequest $request, string $method, string $url, array $data): Response
@@ -382,7 +385,10 @@ final class ApexClient
                 $response->status(),
                 null,
                 [
-                    'method' => $method, 'url' => $url, 'data' => $data, 'errorBody' => $errorBody,
+                    'method' => $method,
+                    'url' => $url,
+                    'data' => $data,
+                    'errorBody' => $errorBody,
                     'routeInfo' => $routeInfo,
                 ]
             );
