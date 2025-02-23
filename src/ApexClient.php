@@ -23,6 +23,7 @@ final class ApexClient
     private const ALLOWED_METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
     private string $connection;
+
     private ?string $environmentConnection = null;
 
     public function __construct(
@@ -30,71 +31,6 @@ final class ApexClient
         ?string $connection = null
     ) {
         $this->connection = $connection ?? config('salesforce.default');
-    }
-
-    /**
-     * Switch to a different Salesforce connection.
-     */
-    public function connection(string $name): self
-    {
-        $this->connection = $name;
-        cache()->forget($this->getTokenCacheKey());
-        return $this;
-    }
-
-    /**
-     * Set a connection to be used only in specific environments.
-     *
-     * @param string $connection The connection name to use
-     * @param string|array $environments The environment(s) where this connection should be used
-     */
-    public function whenEnvironment(string $connection, string|array $environments): self
-    {
-        $currentEnv = app()->environment();
-        $environments = (array) $environments;
-
-        if (in_array($currentEnv, $environments, true)) {
-            $this->environmentConnection = $connection;
-            cache()->forget($this->getTokenCacheKey());
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get the current connection name.
-     */
-    public function getConnection(): string
-    {
-        return $this->environmentConnection ?? $this->connection;
-    }
-
-    /**
-     * Get the configuration for the current connection.
-     *
-     * @throws SalesforceException
-     */
-    private function getConfig(?string $key = null): mixed
-    {
-        $connectionName = $this->getConnection();
-        $config = config("salesforce.connections.{$connectionName}");
-
-        if ($config === null) {
-            // If environment-specific connection fails, fall back to default
-            if ($this->environmentConnection !== null) {
-                $this->environmentConnection = null;
-                return $this->getConfig($key);
-            }
-
-            throw new SalesforceException("Salesforce connection [{$connectionName}] not configured.");
-        }
-
-        return $key === null ? $config : ($config[$key] ?? null);
-    }
-
-    private function getTokenCacheKey(): string
-    {
-        return self::TOKEN_CACHE_KEY . '.' . $this->getConnection();
     }
 
     /**
@@ -122,11 +58,78 @@ final class ApexClient
         );
     }
 
+    /**
+     * Switch to a different Salesforce connection.
+     */
+    public function connection(string $name): self
+    {
+        $this->connection = $name;
+        cache()->forget($this->getTokenCacheKey());
+
+        return $this;
+    }
+
+    /**
+     * Set a connection to be used only in specific environments.
+     *
+     * @param  string  $connection  The connection name to use
+     * @param  string|array  $environments  The environment(s) where this connection should be used
+     */
+    public function whenEnvironment(string $connection, string|array $environments): self
+    {
+        $currentEnv = app()->environment();
+        $environments = (array) $environments;
+
+        if (in_array($currentEnv, $environments, true)) {
+            $this->environmentConnection = $connection;
+            cache()->forget($this->getTokenCacheKey());
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get the current connection name.
+     */
+    public function getConnection(): string
+    {
+        return $this->environmentConnection ?? $this->connection;
+    }
+
     public function setEmail(string $email): self
     {
         $this->userEmail = $email;
 
         return $this;
+    }
+
+    /**
+     * Get the configuration for the current connection.
+     *
+     * @throws SalesforceException
+     */
+    private function getConfig(?string $key = null): mixed
+    {
+        $connectionName = $this->getConnection();
+        $config = config("salesforce.connections.{$connectionName}");
+
+        if ($config === null) {
+            // If environment-specific connection fails, fall back to default
+            if ($this->environmentConnection !== null) {
+                $this->environmentConnection = null;
+
+                return $this->getConfig($key);
+            }
+
+            throw new SalesforceException("Salesforce connection [{$connectionName}] not configured.");
+        }
+
+        return $key === null ? $config : ($config[$key] ?? null);
+    }
+
+    private function getTokenCacheKey(): string
+    {
+        return self::TOKEN_CACHE_KEY.'.'.$this->getConnection();
     }
 
     /**

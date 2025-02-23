@@ -283,7 +283,7 @@ it('throws exception when only one certificate setting is provided', function ()
         ]
     ));
 
-    expect(fn() => app(ApexClient::class)->get('/test'))
+    expect(fn () => app(ApexClient::class)->get('/test'))
         ->toThrow(SalesforceException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
 
     // Test with only key
@@ -295,7 +295,7 @@ it('throws exception when only one certificate setting is provided', function ()
         ]
     ));
 
-    expect(fn() => app(ApexClient::class)->get('/test'))
+    expect(fn () => app(ApexClient::class)->get('/test'))
         ->toThrow(SalesforceException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
 });
 
@@ -385,7 +385,7 @@ it('throws exception on empty token', function (): void {
 
     $client = app(ApexClient::class);
 
-    expect(fn() => $client->get('/test'))
+    expect(fn () => $client->get('/test'))
         ->toThrow(SalesforceException::class, 'Invalid token received from Salesforce');
 });
 
@@ -401,7 +401,7 @@ it('throws exception on missing token', function (): void {
     $method = $reflection->getMethod('refreshToken');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($client))
+    expect(fn () => $method->invoke($client))
         ->toThrow(SalesforceException::class, 'Invalid token received from Salesforce');
 })->skip('Needs to be fixed');
 
@@ -418,7 +418,7 @@ it('throws exception on invalid token response', function (): void {
     $method = $reflection->getMethod('refreshToken');
     $method->setAccessible(true);
 
-    expect(fn() => $method->invoke($client))
+    expect(fn () => $method->invoke($client))
         ->toThrow(
             SalesforceException::class,
             'Failed to refresh token: {"error":"invalid_grant","error_description":"authentication failure"}'
@@ -455,7 +455,7 @@ it('can switch connections', function (): void {
 });
 
 it('uses environment-specific connection when environment matches', function (): void {
-    app()->detectEnvironment(fn() => 'staging');
+    app()->detectEnvironment(fn () => 'staging');
 
     $client = app(ApexClient::class);
     $client->whenEnvironment('sandbox', 'staging');
@@ -464,7 +464,7 @@ it('uses environment-specific connection when environment matches', function ():
 });
 
 it('uses default connection when environment does not match', function (): void {
-    app()->detectEnvironment(fn() => 'production');
+    app()->detectEnvironment(fn () => 'production');
 
     $client = app(ApexClient::class);
     $client->whenEnvironment('sandbox', 'staging');
@@ -473,7 +473,7 @@ it('uses default connection when environment does not match', function (): void 
 });
 
 it('supports multiple environments in whenEnvironment', function (): void {
-    app()->detectEnvironment(fn() => 'testing');
+    app()->detectEnvironment(fn () => 'testing');
 
     $client = app(ApexClient::class);
     $client->whenEnvironment('sandbox', ['staging', 'testing']);
@@ -482,7 +482,7 @@ it('supports multiple environments in whenEnvironment', function (): void {
 });
 
 it('falls back to default connection when environment connection is not configured', function (): void {
-    app()->detectEnvironment(fn() => 'staging');
+    app()->detectEnvironment(fn () => 'staging');
 
     Config::set('salesforce.connections.sandbox', null);
 
@@ -505,7 +505,7 @@ it('falls back to default connection when environment connection is not configur
 });
 
 it('uses correct credentials for environment connection', function (): void {
-    app()->detectEnvironment(fn() => 'staging');
+    app()->detectEnvironment(fn () => 'staging');
 
     Http::fake([
         'sandbox.salesforce.com/services/oauth2/token' => Http::response([
@@ -531,7 +531,7 @@ it('uses correct credentials for environment connection', function (): void {
 });
 
 it('maintains environment connection across requests', function (): void {
-    app()->detectEnvironment(fn() => 'staging');
+    app()->detectEnvironment(fn () => 'staging');
 
     $client = app(ApexClient::class)
         ->whenEnvironment('sandbox', 'staging');
@@ -557,7 +557,7 @@ it('maintains environment connection across requests', function (): void {
 });
 
 it('clears token cache when switching connections', function (): void {
-    app()->detectEnvironment(fn() => 'staging');
+    app()->detectEnvironment(fn () => 'staging');
 
     $client = app(ApexClient::class);
 
