@@ -21,3 +21,5 @@ build
 /phpstan.neon export-ignore
 /CHANGELOG.md export-ignore
 /README.md export-ignore
+
+.DS_Store

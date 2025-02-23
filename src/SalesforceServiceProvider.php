@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Antogkou\LaravelSalesforce;
 
+use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;
@@ -107,13 +108,18 @@ final class SalesforceServiceProvider extends ServiceProvider
         }
 
         // Validate certificate configuration consistency
+        $this->validateCertificateConfig($config, $connection);
+    }
+
+    private function validateCertificateConfig(Repository $config, string $connection): void
+    {
         $certConfig = [
             'certificate' => $config->get("salesforce.connections.{$connection}.certificate"),
             'certificate_key' => $config->get("salesforce.connections.{$connection}.certificate_key"),
         ];
 
         if (array_filter($certConfig) !== [] && array_filter($certConfig) !== $certConfig) {
-            throw new RuntimeException(
+            throw new SalesforceException(
                 "Both certificate and certificate_key must be provided for connection [{$connection}] if using certificate authentication"
             );
         }

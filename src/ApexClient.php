@@ -44,7 +44,7 @@ final class ApexClient
 
     /**
      * Set a connection to be used only in specific environments.
-     * 
+     *
      * @param string $connection The connection name to use
      * @param string|array $environments The environment(s) where this connection should be used
      */
@@ -78,7 +78,7 @@ final class ApexClient
     {
         $connectionName = $this->getConnection();
         $config = config("salesforce.connections.{$connectionName}");
-        
+
         if ($config === null) {
             // If environment-specific connection fails, fall back to default
             if ($this->environmentConnection !== null) {

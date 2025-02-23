@@ -154,11 +154,11 @@ global with sharing class YourApexClass {
         // Validate application credentials
         String appUuid = RestContext.request.headers.get('x-app-uuid');
         String appKey = RestContext.request.headers.get('x-app-key');
-        
+
         if (!YourAuthService.validateApp(appUuid, appKey)) {
             throw new CustomException('Invalid application credentials');
         }
-        
+
         // Your endpoint logic...
     }
 }
