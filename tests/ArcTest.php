@@ -40,7 +40,7 @@ arch('avoid mutation')
         'App\Models',
         'App\Notifications',
         'App\Providers',
-        'App\View'
+        'App\View',
     ]);
 
 arch('avoid inheritance')
