@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static Response patch(string $url, array $data, array $additionalHeaders = [])
  * @method static Response delete(string $url, array $additionalHeaders = [])
  * @method static self setEmail(string $email)
+ * @method static self connection(string $name)
+ * @method static self whenEnvironment(string $connection, string|array $environments)
+ * @method static string getConnection()
  *
  * Generic request method for dynamic HTTP methods
  * @method static Response __call(string $method, array $arguments)

@@ -26,7 +26,7 @@ final class SalesforceException extends Exception implements Responsable
         parent::__construct($message, $code, $previous);
     }
 
-    public function toResponse($request): JsonResponse
+    public function toResponse($request): JsonResponse // @pest-ignore-type
     {
         $statusCode = $this->isValidHttpStatusCode($this->getCode())
             ? $this->getCode()

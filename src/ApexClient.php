@@ -8,7 +8,6 @@ use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -22,9 +21,16 @@ final class ApexClient
 
     private const ALLOWED_METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
+    private string $connection;
+
+    private ?string $environmentConnection = null;
+
     public function __construct(
-        private ?string $userEmail = null
-    ) {}
+        private ?string $userEmail = null,
+        ?string $connection = null
+    ) {
+        $this->connection = $connection ?? config('salesforce.default');
+    }
 
     /**
      * Magic method to handle HTTP requests dynamically
@@ -51,11 +57,78 @@ final class ApexClient
         );
     }
 
+    /**
+     * Switch to a different Salesforce connection.
+     */
+    public function connection(string $name): self
+    {
+        $this->connection = $name;
+        cache()->forget($this->getTokenCacheKey());
+
+        return $this;
+    }
+
+    /**
+     * Set a connection to be used only in specific environments.
+     *
+     * @param  string  $connection  The connection name to use
+     * @param  string|array  $environments  The environment(s) where this connection should be used
+     */
+    public function whenEnvironment(string $connection, string|array $environments): self
+    {
+        $currentEnv = app()->environment();
+        $environments = (array) $environments;
+
+        if (in_array($currentEnv, $environments, true)) {
+            $this->environmentConnection = $connection;
+            cache()->forget($this->getTokenCacheKey());
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get the current connection name.
+     */
+    public function getConnection(): string
+    {
+        return $this->environmentConnection ?? $this->connection;
+    }
+
     public function setEmail(string $email): self
     {
         $this->userEmail = $email;
 
         return $this;
+    }
+
+    /**
+     * Get the configuration for the current connection.
+     *
+     * @throws SalesforceException
+     */
+    private function getConfig(?string $key = null): mixed
+    {
+        $connectionName = $this->getConnection();
+        $config = config("salesforce.connections.{$connectionName}");
+
+        if ($config === null) {
+            // If environment-specific connection fails, fall back to default
+            if ($this->environmentConnection !== null) {
+                $this->environmentConnection = null;
+
+                return $this->getConfig($key);
+            }
+
+            throw new SalesforceException("Salesforce connection [{$connectionName}] not configured.");
+        }
+
+        return $key === null ? $config : ($config[$key] ?? null);
+    }
+
+    private function getTokenCacheKey(): string
+    {
+        return self::TOKEN_CACHE_KEY.'.'.$this->getConnection();
     }
 
     /**
@@ -75,7 +148,7 @@ final class ApexClient
             $response = $this->executeRequest($request, $method, $fullUrl, $data);
 
             if ($response->unauthorized()) {
-                cache()->forget(self::TOKEN_CACHE_KEY);
+                cache()->forget($this->getTokenCacheKey());
                 $response = $this->executeRequest(
                     $this->buildRequest($additionalHeaders),
                     $method,
@@ -106,14 +179,15 @@ final class ApexClient
 
     private function getBaseUrl(): string
     {
-        $apexUri = config('salesforce.apex_uri');
+        $apexUri = $this->getConfig('apex_uri');
         if (! is_string($apexUri)) {
             throw new SalesforceException('Invalid apex_uri configuration');
         }
 
         // Add port 8443 for certificate-based connections
-        if (config('salesforce.certificate') &&
-            config('salesforce.certificate_key') &&
+        if (
+            $this->getConfig('certificate') &&
+            $this->getConfig('certificate_key') &&
             ! Str::contains($apexUri, '.com:8443')
         ) {
             $apexUri = Str::replaceFirst('.com', '.com:8443', $apexUri);
@@ -129,7 +203,7 @@ final class ApexClient
     {
         try {
             return cache()->remember(
-                self::TOKEN_CACHE_KEY,
+                $this->getTokenCacheKey(),
                 self::TOKEN_CACHE_TTL,
                 fn (): string => $this->refreshToken()
             );
@@ -144,7 +218,7 @@ final class ApexClient
      */
     private function refreshToken(): string
     {
-        $tokenUri = config('salesforce.token_uri');
+        $tokenUri = $this->getConfig('token_uri');
         if (! is_string($tokenUri)) {
             throw new SalesforceException('Invalid token_uri configuration');
         }
@@ -152,10 +226,10 @@ final class ApexClient
         try {
             $response = Http::asForm()->post($tokenUri, [
                 'grant_type' => 'password',
-                'client_id' => config('salesforce.client_id'),
-                'client_secret' => config('salesforce.client_secret'),
-                'username' => config('salesforce.username'),
-                'password' => config('salesforce.password').config('salesforce.security_token'),
+                'client_id' => $this->getConfig('client_id'),
+                'client_secret' => $this->getConfig('client_secret'),
+                'username' => $this->getConfig('username'),
+                'password' => $this->getConfig('password').$this->getConfig('security_token'),
             ]);
 
             if (! $response->successful()) {
@@ -168,6 +242,7 @@ final class ApexClient
             $token = $response->json('access_token');
 
             if (! is_string($token) || $token === '' || $token === '0') {
+
                 throw new SalesforceException(
                     'Invalid token received from Salesforce',
                     $response->status()
@@ -175,7 +250,6 @@ final class ApexClient
             }
 
             return $token;
-
         } catch (Exception $e) {
             if ($e instanceof SalesforceException) {
                 throw $e;
@@ -197,8 +271,8 @@ final class ApexClient
         $headers = [];
 
         // Add optional application authentication headers
-        $appUuid = config('salesforce.app_uuid');
-        $appKey = config('salesforce.app_key');
+        $appUuid = $this->getConfig('app_uuid');
+        $appKey = $this->getConfig('app_key');
 
         if ($appUuid && $appKey) {
             $headers['x-app-uuid'] = $appUuid;
@@ -206,17 +280,19 @@ final class ApexClient
         }
 
         // Add user email if available
-        if ($this->userEmail ?? (Auth::user()?->email ?? null)) {
-            $headers['x-user-email'] = $this->userEmail ?? Auth::user()?->email;
+        $email = $this->userEmail;
+        if (($email === null || $email === '' || $email === '0') && auth()->check()) {
+            $email = auth()->user()?->email;
         }
+        $headers['x-user-email'] = $email ?? null;
 
         return array_merge($headers, $additionalHeaders);
     }
 
     private function getRequestOptions(): array
     {
-        $certificate = config('salesforce.certificate');
-        $certificateKey = config('salesforce.certificate_key');
+        $certificate = $this->getConfig('certificate');
+        $certificateKey = $this->getConfig('certificate_key');
 
         // If neither is set, return empty options
         if (! $certificate && ! $certificateKey) {
@@ -224,7 +300,7 @@ final class ApexClient
         }
 
         // If one is set but not the other, throw exception
-        if (($certificate && ! $certificateKey) || (! $certificate && $certificateKey)) {
+        if ($certificate xor $certificateKey) {
             throw new SalesforceException(
                 'Both certificate and certificate_key must be provided if using certificate authentication'
             );
@@ -308,7 +384,10 @@ final class ApexClient
                 $response->status(),
                 null,
                 [
-                    'method' => $method, 'url' => $url, 'data' => $data, 'errorBody' => $errorBody,
+                    'method' => $method,
+                    'url' => $url,
+                    'data' => $data,
+                    'errorBody' => $errorBody,
                     'routeInfo' => $routeInfo,
                 ]
             );

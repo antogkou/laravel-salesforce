@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Antogkou\LaravelSalesforce;
 
+use Antogkou\LaravelSalesforce\Exceptions\SalesforceException;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;
@@ -22,10 +23,12 @@ final class SalesforceServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton('salesforce', function (Container $app): ApexClient {
-            $this->ensureConfigExists($app['config']);
+            $connection = $app['config']->get('salesforce.default');
+            $this->ensureConfigExists($app['config'], $connection);
 
             return new ApexClient(
-                userEmail: $app['config']->get('salesforce.default_user_email')
+                userEmail: $app['config']->get("salesforce.connections.{$connection}.default_user_email"),
+                connection: $connection
             );
         });
 
@@ -66,8 +69,12 @@ final class SalesforceServiceProvider extends ServiceProvider
      *
      * @throws RuntimeException
      */
-    private function ensureConfigExists(Repository $config): void
+    private function ensureConfigExists(Repository $config, string $connection): void
     {
+        if (! $config->has("salesforce.connections.{$connection}")) {
+            throw new RuntimeException("Salesforce connection [{$connection}] not configured.");
+        }
+
         $requiredKeys = [
             'apex_uri',
             'token_uri',
@@ -78,12 +85,13 @@ final class SalesforceServiceProvider extends ServiceProvider
             'security_token',
         ];
 
-        $missingKeys = array_filter($requiredKeys, fn (string $key): bool => empty($config->get("salesforce.{$key}"))
+        $missingKeys = array_filter($requiredKeys, fn (string $key): bool => empty($config->get("salesforce.connections.{$connection}.{$key}"))
         );
 
         if ($missingKeys !== []) {
             throw new RuntimeException(sprintf(
-                'Missing required Salesforce configuration keys: %s',
+                'Missing required Salesforce configuration keys for connection [%s]: %s',
+                $connection,
                 implode(', ', $missingKeys)
             ));
         }
@@ -91,23 +99,28 @@ final class SalesforceServiceProvider extends ServiceProvider
         // Validate URLs
         $urls = ['apex_uri', 'token_uri'];
         foreach ($urls as $key) {
-            $url = $config->get("salesforce.{$key}");
+            $url = $config->get("salesforce.connections.{$connection}.{$key}");
             if (! filter_var($url, FILTER_VALIDATE_URL)) {
                 throw new RuntimeException(
-                    "Invalid URL format for salesforce.{$key}: {$url}"
+                    "Invalid URL format for salesforce.connections.{$connection}.{$key}: {$url}"
                 );
             }
         }
 
         // Validate certificate configuration consistency
+        $this->validateCertificateConfig($config, $connection);
+    }
+
+    private function validateCertificateConfig(Repository $config, string $connection): void
+    {
         $certConfig = [
-            'certificate' => $config->get('salesforce.certificate'),
-            'certificate_key' => $config->get('salesforce.certificate_key'),
+            'certificate' => $config->get("salesforce.connections.{$connection}.certificate"),
+            'certificate_key' => $config->get("salesforce.connections.{$connection}.certificate_key"),
         ];
 
         if (array_filter($certConfig) !== [] && array_filter($certConfig) !== $certConfig) {
-            throw new RuntimeException(
-                'Both certificate and certificate_key must be provided if using certificate authentication'
+            throw new SalesforceException(
+                "Both certificate and certificate_key must be provided for connection [{$connection}] if using certificate authentication"
             );
         }
     }
