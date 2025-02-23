@@ -20,16 +20,17 @@ APIs.
 
 ## Requirements
 
-- PHP 8.1 or higher
+- PHP 8.2 or higher
 - Laravel 10.0 or higher
 - Composer 2.0 or higher
 
 ## Version Compatibility
 
-| Laravel | PHP           | Package |
-|---------|---------------|---------|
-| 10.x    | 8.1, 8.2, 8.3 | 1.x     |
-| 11.x    | 8.2, 8.3      | 1.x     |
+| Laravel | PHP                | Package |
+|---------|-------------------|---------|
+| 10.x    | 8.2, 8.3         | 1.x     |
+| 11.x    | 8.2, 8.3, 8.4    | 1.x     |
+| 12.x    | 8.3, 8.4         | 1.x     |
 
 ## Installation
 

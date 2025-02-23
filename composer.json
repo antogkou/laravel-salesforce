@@ -20,16 +20,16 @@
     }
   },
   "require": {
-    "php": "^8.2",
-    "illuminate/support": "^10.0|^11.0",
-    "illuminate/http": "^10.0|^11.0",
+    "php": "^8.2|^8.3|^8.4",
+    "illuminate/support": "^10.0|^11.0|^12.0",
+    "illuminate/http": "^10.0|^11.0|^12.0",
     "guzzlehttp/guzzle": "^7.0"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^v3.64.0",
     "larastan/larastan": "v2.9.11",
     "laravel/pint": "^1.13",
-    "orchestra/testbench": "^8.0|^9.0",
+    "orchestra/testbench": "^8.0|^9.0|^10.0",
     "pestphp/pest": "^v3.5.1",
     "pestphp/pest-plugin-laravel": "^v3.0.0",
     "pestphp/pest-plugin-type-coverage": "^3.3",
