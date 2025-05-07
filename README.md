@@ -20,8 +20,8 @@ APIs.
 
 ## Requirements
 
-- PHP 8.1 or higher
-- Laravel 10.0 or higher
+- PHP 8.2 or higher (Compatible with PHP 8.2, 8.3, 8.4)
+- Laravel 11.0 or higher (Laravel 12 support is experimental)
 - Composer 2.0 or higher
 
 ## Version Compatibility
@@ -29,7 +29,9 @@ APIs.
 | Laravel | PHP           | Package |
 |---------|---------------|---------|
 | 10.x    | 8.1, 8.2, 8.3 | 1.x     |
-| 11.x    | 8.2, 8.3      | 1.x     |
+| 11.x    | 8.2, 8.3      | 2.x     |
+| 11.x    | 8.4           | 3.x     |
+| 12.x    | 8.2, 8.3, 8.4 | 3.x     |
 
 ## Installation
 
@@ -53,7 +55,8 @@ php artisan vendor:publish --tag="salesforce-certificates"
 
 ### Multiple Connections
 
-This package supports multiple Salesforce connections. You can configure them in your `.env` file and `config/salesforce.php`:
+This package supports multiple Salesforce connections. You can configure them in your `.env` file and
+`config/salesforce.php`:
 
 ```env
 # Default connection
@@ -109,13 +112,16 @@ $response = Salesforce::whenEnvironment('sandbox', 'production')
 ```
 
 Each connection can have its own:
+
 - OAuth credentials
 - API endpoints
 - Application authentication
 - Certificate configuration
 - Default user email
 
-The package will always use the default connection unless explicitly changed using `connection()` or `whenEnvironment()`. If an environment-specific connection is set but not configured, it will automatically fall back to the default connection.
+The package will always use the default connection unless explicitly changed using `connection()` or
+`whenEnvironment()`. If an environment-specific connection is set but not configured, it will automatically fall back to
+the default connection.
 
 ### Required Configuration
 
