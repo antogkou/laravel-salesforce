@@ -23,11 +23,22 @@ final class SalesforceServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton('salesforce', function (Container $app): ApexClient {
-            $connection = $app['config']->get('salesforce.default');
+            $config = $app['config'];
+            $connection = $config->get('salesforce.default');
+
+            // If the default connection doesn't exist in the config, try to use the first available connection
+            if (! $config->has("salesforce.connections.{$connection}")) {
+                $connections = $config->get('salesforce.connections', []);
+                if (empty($connections)) {
+                    throw new RuntimeException('No Salesforce connections configured.');
+                }
+                $connection = array_key_first($connections);
+            }
+
             $this->ensureConfigExists($app['config'], $connection);
 
             return new ApexClient(
-                userEmail: $app['config']->get("salesforce.connections.{$connection}.default_user_email"),
+                userEmail: $config->get("salesforce.connections.{$connection}.default_user_email"),
                 connection: $connection
             );
         });
