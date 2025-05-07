@@ -58,6 +58,14 @@ final class ApexClient
     }
 
     /**
+     * Get the current connection name.
+     */
+    public function getConnection(): string
+    {
+        return $this->environmentConnection ?? $this->connection;
+    }
+
+    /**
      * Switch to a different Salesforce connection.
      */
     public function connection(string $name): self
@@ -87,48 +95,11 @@ final class ApexClient
         return $this;
     }
 
-    /**
-     * Get the current connection name.
-     */
-    public function getConnection(): string
-    {
-        return $this->environmentConnection ?? $this->connection;
-    }
-
     public function setEmail(string $email): self
     {
         $this->userEmail = $email;
 
         return $this;
-    }
-
-    /**
-     * Get the configuration for the current connection.
-     *
-     * @throws SalesforceException
-     */
-    private function getConfig(?string $key = null): mixed
-    {
-        $connectionName = $this->getConnection();
-        $config = config("salesforce.connections.{$connectionName}");
-
-        if ($config === null) {
-            // If environment-specific connection fails, fall back to default
-            if ($this->environmentConnection !== null) {
-                $this->environmentConnection = null;
-
-                return $this->getConfig($key);
-            }
-
-            throw new SalesforceException("Salesforce connection [{$connectionName}] not configured.");
-        }
-
-        return $key === null ? $config : ($config[$key] ?? null);
-    }
-
-    private function getTokenCacheKey(): string
-    {
-        return self::TOKEN_CACHE_KEY.'.'.$this->getConnection();
     }
 
     /**
@@ -177,6 +148,9 @@ final class ApexClient
             ->withOptions($this->getRequestOptions());
     }
 
+    /**
+     * @throws SalesforceException
+     */
     private function getBaseUrl(): string
     {
         $apexUri = $this->getConfig('apex_uri');
@@ -197,6 +171,30 @@ final class ApexClient
     }
 
     /**
+     * Get the configuration for the current connection.
+     *
+     * @throws SalesforceException
+     */
+    private function getConfig(?string $key = null): mixed
+    {
+        $connectionName = $this->getConnection();
+        $config = config("salesforce.connections.{$connectionName}");
+
+        if ($config === null) {
+            // If environment-specific connection fails, fall back to default
+            if ($this->environmentConnection !== null) {
+                $this->environmentConnection = null;
+
+                return $this->getConfig($key);
+            }
+
+            throw new SalesforceException("Salesforce connection [{$connectionName}] not configured.");
+        }
+
+        return $key === null ? $config : ($config[$key] ?? null);
+    }
+
+    /**
      * @throws SalesforceException
      */
     private function getToken(): string
@@ -211,6 +209,11 @@ final class ApexClient
             Log::error('Failed to obtain Salesforce token', ['error' => $e->getMessage()]);
             throw new SalesforceException($e->getMessage(), 500, $e);
         }
+    }
+
+    private function getTokenCacheKey(): string
+    {
+        return self::TOKEN_CACHE_KEY.'.'.$this->getConnection();
     }
 
     /**
