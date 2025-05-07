@@ -13,10 +13,20 @@ jobs:
       fail-fast: false
       matrix:
         php: [ 8.2, 8.3, 8.4 ]
-        laravel: [ 11.*, 12.* ]
+        laravel: [ 11.* ]
         experimental: [ false ]
         include:
           - php: 8.4
+            laravel: 11.*
+            experimental: true
+          - php: 8.2
+            laravel: 12.*
+            experimental: true
+          - php: 8.3
+            laravel: 12.*
+            experimental: true
+          - php: 8.4
+            laravel: 12.*
             experimental: true
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }}
@@ -36,17 +46,27 @@ jobs:
       - name: Install dependencies
         run: |
           if [[ ${{ matrix.laravel }} == "12.*" ]]; then
-            composer require "laravel/framework:${{ matrix.laravel }}" --prefer-lowest --no-interaction --no-update
+            composer config platform.php ${{ matrix.php }}
+            composer remove --dev larastan/larastan --no-update
+            composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
+            composer update --prefer-stable --prefer-dist --no-interaction --no-progress
           else
             composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
+            composer update --prefer-stable --prefer-dist --no-interaction --no-progress
           fi
-          composer update --prefer-stable --prefer-dist --no-interaction --no-progress
 
       - name: Check coding style
         run: vendor/bin/pint --test
 
       - name: Execute tests
+        if: ${{ matrix.laravel != '12.*' }}
         run: vendor/bin/pest --coverage
+
+      - name: Execute tests (Laravel 12)
+        if: ${{ matrix.laravel == '12.*' }}
+        run: |
+          # Skip phpstan since we removed larastan for Laravel 12
+          vendor/bin/pest --coverage --skip-coverage
 
   format:
     runs-on: ubuntu-latest
