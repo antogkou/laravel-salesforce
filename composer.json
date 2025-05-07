@@ -26,14 +26,14 @@
     "guzzlehttp/guzzle": "^7.0"
   },
   "require-dev": {
-    "friendsofphp/php-cs-fixer": "^v3.64.0",
+    "friendsofphp/php-cs-fixer": "^3.75.0",
     "larastan/larastan": "v2.9.11",
-    "laravel/pint": "^1.13",
-    "orchestra/testbench": "^8.0|^9.0|^10.0",
-    "pestphp/pest": "^v3.5.1",
-    "pestphp/pest-plugin-laravel": "^v3.0.0",
-    "pestphp/pest-plugin-type-coverage": "^3.3",
-    "phpstan/phpstan": "^1.0",
+    "laravel/pint": "^1.22",
+    "orchestra/testbench": "^8.0|^9.13.1|^10.0",
+    "pestphp/pest": "^3.8.2",
+    "pestphp/pest-plugin-laravel": "^3.2.0",
+    "pestphp/pest-plugin-type-coverage": "^3.5.1",
+    "phpstan/phpstan": "^1.12.25",
     "rector/rector": "^1.2.10"
   },
   "extra": {
