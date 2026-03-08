@@ -8,60 +8,35 @@ arch()->preset()->php();
 
 arch()->preset()->security()->ignoring('assert');
 
-arch()->preset()->laravel()
-    ->ignoring('App\Providers\Filament\CitadelPanelProvider');
-
 arch('strict types')
-    ->expect('App')
+    ->expect('Antogkou\LaravelSalesforce')
     ->toUseStrictTypes();
 
 arch('avoid open for extension')
-    ->expect('App')
+    ->expect('Antogkou\LaravelSalesforce')
     ->classes()
     ->toBeFinal();
 
 arch('ensure no extends')
-    ->expect('App')
+    ->expect('Antogkou\LaravelSalesforce')
     ->classes()
     ->not->toBeAbstract();
 
 arch('avoid mutation')
-    ->expect('App')
+    ->expect('Antogkou\LaravelSalesforce')
     ->classes()
     ->toBeReadonly()
     ->ignoring([
-        'App\Console\Commands',
-        'App\Exceptions',
-        'App\Filament',
-        'App\Http\Requests',
-        'App\Jobs',
-        'App\Livewire',
-        'App\Mail',
-        'App\Models',
-        'App\Notifications',
-        'App\Providers',
-        'App\View',
+        'Antogkou\LaravelSalesforce\Exceptions',
+        'Antogkou\LaravelSalesforce\SalesforceServiceProvider',
     ]);
 
 arch('avoid inheritance')
-    ->expect('App')
+    ->expect('Antogkou\LaravelSalesforce')
     ->classes()
     ->toExtendNothing()
     ->ignoring([
-        'App\Console\Commands',
-        'App\Exceptions',
-        'App\Filament',
-        'App\Http\Requests',
-        'App\Jobs',
-        'App\Livewire',
-        'App\Mail',
-        'App\Models',
-        'App\Notifications',
-        'App\Providers',
-        'App\View',
+        'Antogkou\LaravelSalesforce\Exceptions',
+        'Antogkou\LaravelSalesforce\SalesforceServiceProvider',
+        'Antogkou\LaravelSalesforce\Facades',
     ]);
-
-arch('annotations')
-    ->expect('App')
-    ->toHavePropertiesDocumented()
-    ->toHaveMethodsDocumented();
