@@ -112,10 +112,10 @@ final class ApexClient
         array $data = [],
         array $additionalHeaders = [],
     ): Response {
-        $request = $this->buildRequest($additionalHeaders);
-        $fullUrl = $this->buildUrl($url, $query);
-
         try {
+            $request = $this->buildRequest($additionalHeaders);
+            $fullUrl = $this->buildUrl($url, $query);
+
             $response = $this->executeRequest($request, $method, $fullUrl, $data);
 
             if ($response->unauthorized()) {
@@ -287,7 +287,9 @@ final class ApexClient
         if (($email === null || $email === '' || $email === '0') && auth()->check()) {
             $email = auth()->user()?->email;
         }
-        $headers['x-user-email'] = $email ?? null;
+        if ($email !== null && $email !== '' && $email !== '0') {
+            $headers['x-user-email'] = $email;
+        }
 
         return array_merge($headers, $additionalHeaders);
     }
@@ -352,7 +354,7 @@ final class ApexClient
         return $request->getSchemeAndHttpHost()
             .$request->getBasePath()
             .$request->getPathInfo()
-            .($mergedQuery !== [] ? '?'.http_build_query($mergedQuery) : '');
+            .'?'.http_build_query($mergedQuery);
     }
 
     private function executeRequest(PendingRequest $request, string $method, string $url, array $data): Response
@@ -367,6 +369,9 @@ final class ApexClient
     {
         if ($response->failed()) {
             $errorBody = $response->json() ?? $response->body();
+            $errorMessage = is_array($errorBody)
+                ? ($errorBody['message'] ?? 'Unknown Salesforce API error')
+                : (is_string($errorBody) && $errorBody !== '' ? $errorBody : 'Unknown Salesforce API error');
             $routeInfo = [
                 'uri' => request()->path(),
                 'name' => request()->route()?->getName(),
@@ -383,7 +388,7 @@ final class ApexClient
             ]);
 
             throw new SalesforceException(
-                $errorBody['message'] ?? 'Unknown Salesforce API error',
+                $errorMessage,
                 $response->status(),
                 null,
                 [

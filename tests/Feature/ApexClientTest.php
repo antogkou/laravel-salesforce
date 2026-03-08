@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 beforeEach(function (): void {
     Cache::flush();
@@ -114,6 +115,39 @@ it('throws exception on error response', function (): void {
 
     app(ApexClient::class)->get('/test');
 })->throws(SalesforceException::class, 'error');
+
+it('throws exception with raw body message when error response is not JSON', function (): void {
+    Http::fake([
+        'https://test.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'test-token',
+        ]),
+        'https://test.salesforce.com/services/apexrest/test' => Http::response(
+            'Internal Server Error',
+            500,
+            ['Content-Type' => 'text/plain']
+        ),
+    ]);
+
+    expect(fn () => app(ApexClient::class)->get('/test'))
+        ->toThrow(SalesforceException::class, 'Internal Server Error');
+});
+
+it('does not send x-user-email header when no email is configured', function (): void {
+    Http::fake([
+        'test.salesforce.com/services/oauth2/token' => Http::response([
+            'access_token' => 'test-token',
+        ]),
+        'test.salesforce.com/services/apexrest/test' => Http::response([
+            'data' => 'success',
+        ]),
+    ]);
+
+    app(ApexClient::class)->get('/test');
+
+    Http::assertSent(fn (Request $request): bool => ! str_contains($request->url(), 'oauth2/token')
+        ? ! $request->hasHeader('x-user-email')
+        : true);
+});
 
 it('supports multiple HTTP methods', function (): void {
     Http::fake([
@@ -271,7 +305,7 @@ it('throws exception when only one certificate setting is provided', function ()
     ));
 
     expect(fn () => app(ApexClient::class)->get('/test'))
-        ->toThrow(SalesforceException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
+        ->toThrow(RuntimeException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
 
     // Test with only key
     Config::set('salesforce.connections.default', array_merge(
@@ -283,7 +317,7 @@ it('throws exception when only one certificate setting is provided', function ()
     ));
 
     expect(fn () => app(ApexClient::class)->get('/test'))
-        ->toThrow(SalesforceException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
+        ->toThrow(RuntimeException::class, 'Both certificate and certificate_key must be provided for connection [default] if using certificate authentication');
 });
 
 it('handles port 8443 for certificate URLs correctly', function (): void {
