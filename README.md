@@ -1,3 +1,5 @@
+
+
 # Laravel Salesforce Integration
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/antogkou/laravel-salesforce.svg?style=flat-square)](https://packagist.org/packages/antogkou/laravel-salesforce)
@@ -244,7 +246,7 @@ try {
     $response = Salesforce::get('/endpoint');
 } catch (SalesforceException $e) {
     // Handle Salesforce-specific errors
-    $details = $e->getDetails(); // Array of error details
+    $context = $e->getContext(); // Array of error details
     $status = $e->getCode();     // HTTP status code
 } catch (RequestException $e) {
     // Handle HTTP client errors
